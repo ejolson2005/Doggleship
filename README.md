@@ -26,9 +26,7 @@ Note a Milton Bradly game with the same theme was marketed using the famous line
 
 https://www.youtube.com/watch?v=GkwMDkfrZ1M
 
-This is a simplified version of SALVO. An even simpler version of the game was recently
-finished in the Black Sea,
-though it's not clear who sank the battleship.
+This is a simplified version of SALVO.
 
 In 2013 and 2014 a Pi versus Pi battleship tournament was part of
 the Blue Pi Thinking program
@@ -48,7 +46,7 @@ and also
 
 https://www.raspberrypi.com/news/blue-pi-thinking-from-the-university-of-york/
 
-Before computing the Bayesian posterior after a salvo of Neptune cruise missiles,
+Before computing the Bayesian posterior after a salvo of cruise missiles,
 the first part of Fido's new birthday project will be to strategically place the ships in
 a statistically unbiased way and then develop a framework that allows the super pet to
 play against other computers. I'm personally looking forward to
