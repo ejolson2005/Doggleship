@@ -1,0 +1,26 @@
+#!/bin/bash
+quit() {
+	stty sane
+	stty erase ^H
+	echo "Control-C"
+	if test "x$mpid" != "x"
+	then
+		kill $mpid
+	fi
+	exit 0
+}
+trap quit 1
+trap quit 2
+trap quit 3
+trap quit 15
+
+FIDO=/tmp/bbcsalvo_$$
+rm -f $FIDO
+mkfifo $FIDO
+bbcbasic bbcsalvo.bbc 2>&1 | {
+	echo $! >$FIDO
+	cat
+} &
+mpid=`cat <$FIDO`
+rm -f $FIDO
+wait

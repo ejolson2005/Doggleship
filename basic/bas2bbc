@@ -1,0 +1,18 @@
+#!/bin/bash
+# bas2bbc -- Convert plain text to tokenized BBC Basic
+
+dobas2bbc(){
+	printf "LOAD $1\nSAVE $2\nQUIT\n" |
+	bbcbasic >/dev/null
+}
+
+for f in "$@"
+do
+	case $f in
+*.bas)
+		o=${f%.bas}.bbc
+		printf "Converting $f to $o..."
+		dobas2bbc $f $o
+		printf "done\n" ;;
+	esac
+done
