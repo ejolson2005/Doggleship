@@ -44,27 +44,27 @@ type (
 )
 
 const (
-	running stspec=iota; lost; won
-	twait=time.Duration(1)
-	tmult=1
+    running stspec=iota; lost; won
+    twait=time.Duration(1)
+    tmult=1
 )
 
 var (
-	game1,game2 gmspec
-	trial,turn int
-	win1,win2 int
-	dover int
+    game1,game2 gmspec
+    trial,turn int
+    win1,win2 int
+    dover int
 )
 
 func ishere(g *gmspec,i,j int)bool {
-	i++; j++
-	for k:=0;k<len(g.b);k++ {
-		for l:=0;l<len(g.b[k].p);l++ {
-			if g.b[k].p[l].i==i&&g.b[k].p[l].j==j {
-				return true
-			}
-		}
-	}
+    i++; j++
+    for k:=0;k<len(g.b);k++ {
+        for l:=0;l<len(g.b[k].p);l++ {
+            if g.b[k].p[l].i==i&&g.b[k].p[l].j==j {
+                return true
+            }
+        }
+    }
     return false
 }
 
@@ -451,67 +451,67 @@ func (game *gmspec)forincoming()([]cospec,stspec) {
 }
 
 func doerase() {
-	dover=0
-	turn=0
-	for i:=0;i<10;i++ {
-		for j:=0;j<10;j++ {
-			bdleft[i][j]=0
-		}
-	}
-	for i:=0;i<10;i++ {
-		for j:=0;j<10;j++ {
-			bdright[i][j]=0
-		}
-	}
+    dover=0
+    turn=0
+    for i:=0;i<10;i++ {
+        for j:=0;j<10;j++ {
+            bdleft[i][j]=0
+        }
+    }
+    for i:=0;i<10;i++ {
+        for j:=0;j<10;j++ {
+            bdright[i][j]=0
+        }
+    }
 }
 
 func dotrial(bt1,bt2 bospec){
-	doerase()
+    doerase()
     game1.mkgame(true)
     game2.mkgame(false)
     bt1.boot(&game1,bt1.pname,fmt.Sprintf("s%04d_1.txt",trial))
     bt2.boot(&game2,bt2.pname,fmt.Sprintf("s%04d_2.txt",trial))
     game1.place(game2.b)
     game2.place(game1.b)
-	dorefresh(tmult*2*time.Second)
+    dorefresh(tmult*2*time.Second)
     for turn=1;;turn++ {
         r1,status:=game1.incoming()
         if status==running {
-			for k:=0;k<len(r1);k++ {
-				i:=r1[k].i; j:=r1[k].j
-				bdleft[i-1][j-1]=turn
-			}
+            for k:=0;k<len(r1);k++ {
+                i:=r1[k].i; j:=r1[k].j
+                bdleft[i-1][j-1]=turn
+            }
             game2.outgoing(r1)
         } else {
-			if status==lost {
-				dover=2; win2++
-			} else {
-				dover=1; win1++
-			}
+            if status==lost {
+                dover=2; win2++
+            } else {
+                dover=1; win1++
+            }
             break
         } 
         r2,status:=game2.incoming()
         if status==running {
-			for k:=0;k<len(r2);k++ {
-				i:=r2[k].i; j:=r2[k].j
-				bdright[i-1][j-1]=turn
-			}
+            for k:=0;k<len(r2);k++ {
+                i:=r2[k].i; j:=r2[k].j
+                bdright[i-1][j-1]=turn
+            }
             game1.outgoing(r2)
         } else {
-	        if status==lost {
-				dover=1; win1++
-			} else {
-				dover=2; win2++
-			}
+            if status==lost {
+                dover=1; win1++
+            } else {
+                dover=2; win2++
+            }
             break
         } 
-		dorefresh(tmult*time.Second)
-//		fmt.Printf("Press Enter: ")
-//		var input string
-//		fmt.Scanln(&input)
+        dorefresh(tmult*time.Second)
+//        fmt.Printf("Press Enter: ")
+//        var input string
+//        fmt.Scanln(&input)
     }
-	fmt.Printf("%7d %7d %7d\n",trial,dover,turn)
-	dorefresh(tmult*4*time.Second)
+    fmt.Printf("%7d %7d %7d\n",trial,dover,turn)
+    dorefresh(tmult*4*time.Second)
     game1.fd.Close()
     game2.fd.Close()
     cleanup()
@@ -538,6 +538,6 @@ func doggleship() {
 }
 
 func main(){
-	go doggleship()
-	dogui()
+    go doggleship()
+    dogui()
 }
