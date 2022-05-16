@@ -40,6 +40,14 @@ at the University of York. In particular, Gordon Hollingworth wrote
 >chooses random positions to make shots at. The student then has to modify
 >the python code to implement better AI in both firing position and ship placement. 
 
+See
+
+https://www.raspberrypi.com/news/let-the-battlepi-commence/
+
+and also
+
+https://www.raspberrypi.com/news/blue-pi-thinking-from-the-university-of-york/
+
 Before computing the Bayesian posterior after a salvo of Neptune cruise missiles,
 the first part of Fido's new birthday project will be to strategically place the ships in
 a statistically unbiased way and then develop a framework that allows the super pet to
