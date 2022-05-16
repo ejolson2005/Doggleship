@@ -82,7 +82,7 @@ Compiling should be as simple as typing
 ```
 $ make
 ```
-in the main directory.  This will compiler the Fortran code, tokenize the
+in the main directory.  This will compile the Fortran code, tokenize the
 Basic program and further produce a program called doggleship which by
 default directs the Fortran program to play against itself.  The Basic
 program can be specified by changing a single line in doggleship.go and
