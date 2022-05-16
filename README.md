@@ -85,7 +85,7 @@ $ make
 in the main directory.  This will compiler the Fortran code, tokenize the
 Basic program and further produce a program called doggleship which by
 default directs the Fortran program to play against itself.  The Basic
-program can be specified by changing a single in in doggleship.go and
+program can be specified by changing a single line in doggleship.go and
 recompiling.
 
 Note that the executable expects the Basic and Fortran programs that will
