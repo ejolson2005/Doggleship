@@ -5,7 +5,7 @@
     Version 2 cleanup running programs on interrupt
     Version 3 add Fortran driver and refactor 
     Version 4 add Ebiten graphical dashboard
-    Version 5 add option to turn of dashboard */
+    Version 5 add option to turn off dashboard */
 
 package main
 
