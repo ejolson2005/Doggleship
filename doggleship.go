@@ -4,14 +4,16 @@
     Version 1 run SALVO from 101 Basic Computer Games
     Version 2 cleanup running programs on interrupt
     Version 3 add Fortran driver and refactor 
-    Version 4 add Ebiten graphical dashboard */
+    Version 4 add Ebiten graphical dashboard
+    Version 5 add option to turn of dashboard */
 
 package main
 
 import (
-    "fmt"; "os"; "syscall"; "unsafe"; "C"
-    "os/exec"; "os/signal"; "runtime"; "reflect"
-    "bufio"; "time"; "strings"; "strconv" )
+    "C"; "bufio"; "flag"; "fmt"; "os"; "os/exec"; "os/signal"
+    "reflect"; "runtime"; "strconv"; "strings"; "syscall"
+    "time"; "unsafe"
+)
 
 type (
     stspec int
@@ -53,7 +55,8 @@ var (
     game1,game2 gmspec
     trial,turn int
     win1,win2 int
-    dover int
+    dover,tnum int
+    batch bool
 )
 
 func ishere(g *gmspec,i,j int)bool {
@@ -201,6 +204,8 @@ func (game *gmspec)findtail(s string)bool {
         if game.sr[p]==">" { return false }
         if p>2 {
             for q:=p-2;q<=p;q++ {
+                if game.sr[q]=="I HAVE WON" { return false }
+                if game.sr[q]=="YOU HAVE WON" { return false }
                 if game.sr[q]==" YOU WIN!" { return false }
                 if game.sr[q]==" YOU LOSE!" { return false }
             }
@@ -225,6 +230,8 @@ func (game *gmspec)youhave()int{
     match:=func()int {
         p:=len(game.sr)
         for i:=p-3;i<p;i++ {
+            if game.sr[i]=="I HAVE WON" { return i }
+            if game.sr[i]=="YOU HAVE WON" { return i }
             if game.sr[i]==" YOU WIN!" { return i }
             if game.sr[i]==" YOU LOSE!" { return i }
             if strings.Contains(game.sr[i],"AND YOU HAVE") { return i }
@@ -523,21 +530,30 @@ func (bt *bospec)tp()string {
 
 func doggleship() {
     go onexit()
-    fmt.Printf("doggleship--salvo between two programs V4\n"+
+    fmt.Printf("doggleship--salvo between two programs V5\n"+
         "Written 2022 by Eric Olson\n\n")
 //    bt1:=bospec{bbcboot,"./bbcsalvo"}
-    bt1:=bospec{forboot,"./gfsalvo"}
-    bt2:=bospec{forboot,"./gfsalvo"}
+//    bt1:=bospec{forboot,"./gfsalvo"}
+//    bt2:=bospec{forboot,"./gfsalvo"}
+    bt1:=bospec{bbcboot,"./cheater"}
+    bt2:=bospec{bbcboot,"./cheater"}
     fmt.Printf("Player one is %s of type %s\n",bt1.pname,bt1.tp())
     fmt.Printf("Player two is %s of type %s\n",bt1.pname,bt2.tp())
     fmt.Printf("\n%7s %7s %7s\n","Trial","Winner","Turns")
-    for trial=1;trial<=67;trial++ {
+    for trial=1;trial<=tnum;trial++ {
         dotrial(bt1,bt2)
     }
     myexit(0)
 }
 
 func main(){
-    go doggleship()
-    dogui()
+    flag.BoolVar(&batch,"b",false,"Only produce text output.")
+    flag.IntVar(&tnum,"t",67,"Run specified number of trials.")
+    flag.Parse()
+    if batch {
+        doggleship()
+    } else {
+        go doggleship()
+        dogui()
+    }
 }

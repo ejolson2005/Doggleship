@@ -147,6 +147,7 @@ func doinit(){
 }
 
 func dorefresh(s time.Duration){
+    if batch { return }
     dflag=false
     t:=twait
     for {
