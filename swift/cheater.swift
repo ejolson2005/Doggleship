@@ -1,4 +1,4 @@
-/*    cheater--salvo using covert military intelligence
+/*  cheater--salvo using covert military intelligence
     Written 2022 by Eric Olson
 
     Version 1 play SALVO with random cheating */
