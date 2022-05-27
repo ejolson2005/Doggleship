@@ -14,7 +14,7 @@ package main
 import (
     "C"; "bufio"; "flag"; "fmt"; "os"; "os/exec"; "os/signal"
     "reflect"; "runtime"; "strconv"; "strings"; "sync"
-	"syscall"; "time"; "unsafe"
+    "syscall"; "time"; "unsafe"
 )
 
 type (
@@ -34,10 +34,10 @@ type (
         boot bofunc
         pname string
     }
-	srspec struct {
-		s []string
-		mu sync.Mutex
-	}
+    srspec struct {
+        s []string
+        mu sync.Mutex
+    }
     gmspec struct {
         b []btspec
         sr srspec
@@ -126,22 +126,22 @@ func spawn(cl string)(*os.File,*os.Process) {
     cmd:=exec.Command(cl)
     cmd.Stdin=fslave; cmd.Stdout=fslave; cmd.Stderr=fslave
     cmd.Start()
-	go cmd.Wait()
+    go cmd.Wait()
     return fmaster,cmd.Process
 }
 
 func (sr *srspec)mulen()int{
-	sr.mu.Lock()
-	q:=len(sr.s)
-	sr.mu.Unlock()
-	return q
+    sr.mu.Lock()
+    q:=len(sr.s)
+    sr.mu.Unlock()
+    return q
 }
 
 func (sr *srspec)mustr(p int)string{
-	sr.mu.Lock()
-	s:=sr.s[p]
-	sr.mu.Unlock()
-	return s
+    sr.mu.Lock()
+    s:=sr.s[p]
+    sr.mu.Unlock()
+    return s
 }
 
 func monitor(sr *srspec,fp *os.File,log string) {
@@ -162,18 +162,18 @@ func monitor(sr *srspec,fp *os.File,log string) {
                 i=j+1
             } else if b[j]=='\r' {
                 fmt.Fprintf(logio,"%s\n",b[i:j])
-				sr.mu.Lock()
+                sr.mu.Lock()
                 sr.s[len(sr.s)-1]+=string(b[i:j])
                 sr.s=append(sr.s,"")
-				sr.mu.Unlock()
+                sr.mu.Unlock()
                 i=j+1
             }
         }
         if i<j {
             fmt.Fprintf(logio,"%s",b[i:j])
-			sr.mu.Lock()
+            sr.mu.Lock()
             sr.s[len(sr.s)-1]+=string(b[i:j])
-			sr.mu.Unlock()
+            sr.mu.Unlock()
         }
     }
 }
@@ -223,35 +223,35 @@ func prboats(b []btspec){
 }
 
 func (game *gmspec)mufindtail(s string)bool {
-	found:=false
-	dotail:=func()bool {
-		p:=len(game.sr.s)-1
-		if p>=0 {
-			if istail(game.sr.s[p],s){ found=true; return true }
-			if game.sr.s[p]==">" { found=false; return true }
-		}
-		if p>2 {
-			for q:=p-2;q<=p;q++ {
-				if game.sr.s[q]=="I HAVE WON"||
-					game.sr.s[q]=="YOU HAVE WON"||
-					game.sr.s[q]==" YOU WIN!"||
-					game.sr.s[q]==" YOU LOSE!" {
-					found=false
-					return true
-				}
-			}
-		}
-		return false
-	}
+    found:=false
+    dotail:=func()bool {
+        p:=len(game.sr.s)-1
+        if p>=0 {
+            if istail(game.sr.s[p],s){ found=true; return true }
+            if game.sr.s[p]==">" { found=false; return true }
+        }
+        if p>2 {
+            for q:=p-2;q<=p;q++ {
+                if game.sr.s[q]=="I HAVE WON"||
+                    game.sr.s[q]=="YOU HAVE WON"||
+                    game.sr.s[q]==" YOU WIN!"||
+                    game.sr.s[q]==" YOU LOSE!" {
+                    found=false
+                    return true
+                }
+            }
+        }
+        return false
+    }
     t:=twait
-	for {
-		game.sr.mu.Lock()
-		r:=dotail()
-		game.sr.mu.Unlock()
-		if r { return found }
-		time.Sleep(t*time.Millisecond)
+    for {
+        game.sr.mu.Lock()
+        r:=dotail()
+        game.sr.mu.Unlock()
+        if r { return found }
+        time.Sleep(t*time.Millisecond)
         if t<128 { t*=2 }
-	}
+    }
 }
 
 func (game *gmspec)munextprompt(p int,s string)int {
@@ -279,9 +279,9 @@ func (game *gmspec)muyouhave()int{
     }
     t:=twait
     for {
-		game.sr.mu.Lock()
+        game.sr.mu.Lock()
         p:=match()
-		game.sr.mu.Unlock()
+        game.sr.mu.Unlock()
         if p>0 { return p }
         time.Sleep(t*time.Millisecond)
         if t<128 { t*=2 }
@@ -308,7 +308,7 @@ func bbcboot(game *gmspec,cmd,log string) {
     fmt.Fprintf(game.fd,"WHERE ARE YOUR SHIPS?\n")
     game.munextprompt(p,"? ")
     j:=-1
-	game.sr.mu.Lock()
+    game.sr.mu.Lock()
     for i:=p;i<len(game.sr.s);i++ {
         r:=getname(game.sr.s[i])
         if r>=0 { j=r
@@ -323,7 +323,7 @@ func bbcboot(game *gmspec,cmd,log string) {
             }
         }
     }
-	game.sr.mu.Unlock()
+    game.sr.mu.Unlock()
     if game.first {
         fmt.Fprintf(game.fd,"NO\n")
     } else {
@@ -343,7 +343,7 @@ func forboot(game *gmspec,cmd,log string) {
     fmt.Fprintf(game.fd,"0\n")
     game.munextprompt(p,": ")
     var (them [10][10]int; q=0)
-	game.sr.mu.Lock()
+    game.sr.mu.Lock()
     for i:=p;i<len(game.sr.s);i++ {
         if q>0{
             if istail(game.sr.s[i],"-----"){ break }
@@ -356,7 +356,7 @@ func forboot(game *gmspec,cmd,log string) {
             q=i+1
         }
     }
-	game.sr.mu.Unlock()
+    game.sr.mu.Unlock()
     for i:=0;i<10;i++ {
         for j:=0;j<10;j++ {
             q=-them[i][j]-1
@@ -431,23 +431,23 @@ func (game *gmspec)foroutgoing(r []cospec){
 func (game *gmspec)bbcincoming()([]cospec,stspec) {
     r:=make([]cospec,0,7)
     var (p int; sn []string)
-	getst:=func()stspec {
-	    for p=len(game.sr.s)-1;p>=0;p-- {
-	        if ishead(game.sr.s[p],"I HAVE WON"){
-	            return won
-	        } else if ishead(game.sr.s[p],"YOU HAVE WON"){
-	            return lost
-			} else if ishead(game.sr.s[p],"I HAVE "){
-    			sn=strings.Fields(game.sr.s[p])
-				break
-			}
-	    }
-		return running
-	}
-	game.sr.mu.Lock()
-	st:=getst()
-	game.sr.mu.Unlock()
-	if st!=running { return r,st }
+    getst:=func()stspec {
+        for p=len(game.sr.s)-1;p>=0;p-- {
+            if ishead(game.sr.s[p],"I HAVE WON"){
+                return won
+            } else if ishead(game.sr.s[p],"YOU HAVE WON"){
+                return lost
+            } else if ishead(game.sr.s[p],"I HAVE "){
+                sn=strings.Fields(game.sr.s[p])
+                break
+            }
+        }
+        return running
+    }
+    game.sr.mu.Lock()
+    st:=getst()
+    game.sr.mu.Unlock()
+    if st!=running { return r,st }
     if len(sn)!=4 {
         fmt.Printf("%s:Couldn't parse number of shots from '%s'\n",
             game.log,game.sr.s[p])
@@ -476,23 +476,23 @@ func (game *gmspec)bbcincoming()([]cospec,stspec) {
 func (game *gmspec)forincoming()([]cospec,stspec) {
     r:=make([]cospec,0,7)
     var (p int; sn []string)
-	getst:=func()stspec {
-	    for p=len(game.sr.s)-1;p>=0;p-- {
-	        if ishead(game.sr.s[p]," YOU LOSE!"){
-	            return won
-	        } else if ishead(game.sr.s[p]," YOU WIN!"){
-	            return lost
-	        } else if strings.Contains(game.sr.s[p],"AND I HAVE"){
-    			sn=strings.Fields(game.sr.s[p])
-	            break
-	        }
-		}
-		return running
+    getst:=func()stspec {
+        for p=len(game.sr.s)-1;p>=0;p-- {
+            if ishead(game.sr.s[p]," YOU LOSE!"){
+                return won
+            } else if ishead(game.sr.s[p]," YOU WIN!"){
+                return lost
+            } else if strings.Contains(game.sr.s[p],"AND I HAVE"){
+                sn=strings.Fields(game.sr.s[p])
+                break
+            }
+        }
+        return running
     }
-	game.sr.mu.Lock()
-	st:=getst()
-	game.sr.mu.Unlock()
-	if st!=running { return r,st }
+    game.sr.mu.Lock()
+    st:=getst()
+    game.sr.mu.Unlock()
+    if st!=running { return r,st }
     if len(sn)!=9 {
         fmt.Printf("%s:Couldn't parse number of shots from '%s'\n",
             game.log,game.sr.s[p])
