@@ -7,7 +7,7 @@ import Glibc
 
 let π=4*atan(1.0)
 let N=10
-let γ=0.1
+let γ=0.22
 
 func getinput()->String {
     print("? ",terminator:"")

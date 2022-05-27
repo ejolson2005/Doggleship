@@ -5,14 +5,16 @@
     Version 2 cleanup running programs on interrupt
     Version 3 add Fortran driver and refactor 
     Version 4 add Ebiten graphical dashboard
-    Version 5 add option to turn off dashboard */
+    Version 5 add option to turn off dashboard
+    Version 6 add mutex to avoid racing with monitor
+    Version 7 don't forget to reap the zombies */
 
 package main
 
 import (
     "C"; "bufio"; "flag"; "fmt"; "os"; "os/exec"; "os/signal"
-    "reflect"; "runtime"; "strconv"; "strings"; "syscall"
-    "time"; "unsafe"
+    "reflect"; "runtime"; "strconv"; "strings"; "sync"
+	"syscall"; "time"; "unsafe"
 )
 
 type (
@@ -32,9 +34,13 @@ type (
         boot bofunc
         pname string
     }
+	srspec struct {
+		s []string
+		mu sync.Mutex
+	}
     gmspec struct {
         b []btspec
-        sr []string
+        sr srspec
         pr *os.Process
         fd *os.File
         first bool
@@ -120,10 +126,25 @@ func spawn(cl string)(*os.File,*os.Process) {
     cmd:=exec.Command(cl)
     cmd.Stdin=fslave; cmd.Stdout=fslave; cmd.Stderr=fslave
     cmd.Start()
+	go cmd.Wait()
     return fmaster,cmd.Process
 }
 
-func monitor(sr *[]string,fp *os.File,log string) {
+func (sr *srspec)mulen()int{
+	sr.mu.Lock()
+	q:=len(sr.s)
+	sr.mu.Unlock()
+	return q
+}
+
+func (sr *srspec)mustr(p int)string{
+	sr.mu.Lock()
+	s:=sr.s[p]
+	sr.mu.Unlock()
+	return s
+}
+
+func monitor(sr *srspec,fp *os.File,log string) {
     logio,err:=os.Create(log)
     if err!=nil {
         fmt.Printf("Error opening %s for write!\n",log)
@@ -140,15 +161,19 @@ func monitor(sr *[]string,fp *os.File,log string) {
             if b[j]=='\n' {
                 i=j+1
             } else if b[j]=='\r' {
-                (*sr)[len(*sr)-1]+=string(b[i:j])
                 fmt.Fprintf(logio,"%s\n",b[i:j])
-                *sr=append(*sr,"")
+				sr.mu.Lock()
+                sr.s[len(sr.s)-1]+=string(b[i:j])
+                sr.s=append(sr.s,"")
+				sr.mu.Unlock()
                 i=j+1
             }
         }
         if i<j {
-            (*sr)[len(*sr)-1]+=string(b[i:j])
             fmt.Fprintf(logio,"%s",b[i:j])
+			sr.mu.Lock()
+            sr.s[len(sr.s)-1]+=string(b[i:j])
+			sr.mu.Unlock()
         }
     }
 }
@@ -178,11 +203,11 @@ func (game *gmspec)mkgame(first bool) {
             game.b[i].p=game.b[i].p[:0]
         }
     }
-    if game.sr==nil {
-        game.sr=make([]string,1,512)
+    if game.sr.s==nil {
+        game.sr.s=make([]string,1,512)
     } else {
-        game.sr=game.sr[:1]
-        game.sr[0]=""
+        game.sr.s=game.sr.s[:1]
+        game.sr.s[0]=""
     }    
     game.first=first
 }
@@ -197,50 +222,66 @@ func prboats(b []btspec){
     }
 }
 
-func (game *gmspec)findtail(s string)bool {
+func (game *gmspec)mufindtail(s string)bool {
+	found:=false
+	dotail:=func()bool {
+		p:=len(game.sr.s)-1
+		if p>=0 {
+			if istail(game.sr.s[p],s){ found=true; return true }
+			if game.sr.s[p]==">" { found=false; return true }
+		}
+		if p>2 {
+			for q:=p-2;q<=p;q++ {
+				if game.sr.s[q]=="I HAVE WON"||
+					game.sr.s[q]=="YOU HAVE WON"||
+					game.sr.s[q]==" YOU WIN!"||
+					game.sr.s[q]==" YOU LOSE!" {
+					found=false
+					return true
+				}
+			}
+		}
+		return false
+	}
     t:=twait
-    for p:=len(game.sr)-1;!istail(game.sr[p],s);p=len(game.sr)-1 {
-        time.Sleep(t*time.Millisecond)
-        if game.sr[p]==">" { return false }
-        if p>2 {
-            for q:=p-2;q<=p;q++ {
-                if game.sr[q]=="I HAVE WON" { return false }
-                if game.sr[q]=="YOU HAVE WON" { return false }
-                if game.sr[q]==" YOU WIN!" { return false }
-                if game.sr[q]==" YOU LOSE!" { return false }
-            }
-        }
+	for {
+		game.sr.mu.Lock()
+		r:=dotail()
+		game.sr.mu.Unlock()
+		if r { return found }
+		time.Sleep(t*time.Millisecond)
         if t<128 { t*=2 }
-    }
-    return true
+	}
 }
 
-func (game *gmspec)nextprompt(p int,s string)int {
+func (game *gmspec)munextprompt(p int,s string)int {
     t:=twait
     for {
-        game.findtail(s)
-        r:=len(game.sr)
+        game.mufindtail(s)
+        r:=game.sr.mulen()
         if r>p { return r }
         time.Sleep(t*time.Millisecond)
         if t<128 { t*=2 }
     }
 }
 
-func (game *gmspec)youhave()int{
+func (game *gmspec)muyouhave()int{
     match:=func()int {
-        p:=len(game.sr)
+        p:=len(game.sr.s)
         for i:=p-3;i<p;i++ {
-            if game.sr[i]=="I HAVE WON" { return i }
-            if game.sr[i]=="YOU HAVE WON" { return i }
-            if game.sr[i]==" YOU WIN!" { return i }
-            if game.sr[i]==" YOU LOSE!" { return i }
-            if strings.Contains(game.sr[i],"AND YOU HAVE") { return i }
+            if game.sr.s[i]=="I HAVE WON" { return i }
+            if game.sr.s[i]=="YOU HAVE WON" { return i }
+            if game.sr.s[i]==" YOU WIN!" { return i }
+            if game.sr.s[i]==" YOU LOSE!" { return i }
+            if strings.Contains(game.sr.s[i],"AND YOU HAVE") { return i }
         }
         return 0
     }
     t:=twait
     for {
+		game.sr.mu.Lock()
         p:=match()
+		game.sr.mu.Unlock()
         if p>0 { return p }
         time.Sleep(t*time.Millisecond)
         if t<128 { t*=2 }
@@ -262,16 +303,17 @@ func bbcboot(game *gmspec,cmd,log string) {
     game.outgoing=game.bbcoutgoing
     game.fd,game.pr=spawn(cmd)
     go monitor(&game.sr,game.fd,log)
-    game.findtail("DO YOU WANT TO START? ")
-    p:=len(game.sr)
+    game.mufindtail("DO YOU WANT TO START? ")
+    p:=game.sr.mulen()
     fmt.Fprintf(game.fd,"WHERE ARE YOUR SHIPS?\n")
-    game.nextprompt(p,"? ")
+    game.munextprompt(p,"? ")
     j:=-1
-    for i:=p;i<len(game.sr);i++ {
-        r:=getname(game.sr[i])
+	game.sr.mu.Lock()
+    for i:=p;i<len(game.sr.s);i++ {
+        r:=getname(game.sr.s[i])
         if r>=0 { j=r
         } else if j>=0{
-            sxy:=strings.Fields(game.sr[i])
+            sxy:=strings.Fields(game.sr.s[i])
             if len(sxy)==2 {
                 x,err:=strconv.Atoi(sxy[0])
                 if err!=nil { continue }
@@ -281,6 +323,7 @@ func bbcboot(game *gmspec,cmd,log string) {
             }
         }
     }
+	game.sr.mu.Unlock()
     if game.first {
         fmt.Fprintf(game.fd,"NO\n")
     } else {
@@ -295,23 +338,25 @@ func forboot(game *gmspec,cmd,log string) {
     game.outgoing=game.foroutgoing
     game.fd,game.pr=spawn(cmd)
     go monitor(&game.sr,game.fd,log)
-    game.findtail("CHOICE: ")
-    p:=len(game.sr)
+    game.mufindtail("CHOICE: ")
+    p:=len(game.sr.s)
     fmt.Fprintf(game.fd,"0\n")
-    game.nextprompt(p,": ")
+    game.munextprompt(p,": ")
     var (them [10][10]int; q=0)
-    for i:=p;i<len(game.sr);i++ {
+	game.sr.mu.Lock()
+    for i:=p;i<len(game.sr.s);i++ {
         if q>0{
-            if istail(game.sr[i],"-----"){ break }
-            xs:=strings.Fields(game.sr[i])
+            if istail(game.sr.s[i],"-----"){ break }
+            xs:=strings.Fields(game.sr.s[i])
             for j:=0;j<len(xs);j++ {
                 them[i-q][j],_=strconv.Atoi(xs[j])
             }
         }
-        if istail(game.sr[i],"-----"){ 
+        if istail(game.sr.s[i],"-----"){ 
             q=i+1
         }
     }
+	game.sr.mu.Unlock()
     for i:=0;i<10;i++ {
         for j:=0;j<10;j++ {
             q=-them[i][j]-1
@@ -328,18 +373,18 @@ func forboot(game *gmspec,cmd,log string) {
 }
 
 func (game *gmspec)bbcplace(b []btspec){
-    p:=len(game.sr)-1
+    p:=game.sr.mulen()-1
     for i:=0;i<len(b);i++ {
         for j:=0;j<len(b[i].p);j++ {
-            p=game.nextprompt(p,"? ")
+            p=game.munextprompt(p,"? ")
             fmt.Fprintf(game.fd,"%d,%d\n",
                 b[i].p[j].i,b[i].p[j].j)
         }
     }
-    game.findtail("DO YOU WANT TO SEE MY SHOTS? ")
-    p=len(game.sr)
+    game.mufindtail("DO YOU WANT TO SEE MY SHOTS? ")
+    p=game.sr.mulen()
     fmt.Fprintf(game.fd,"YES\n")
-    game.nextprompt(p,"? ")
+    game.munextprompt(p,"? ")
 }
 
 var dirs=[8]cospec{
@@ -347,58 +392,65 @@ var dirs=[8]cospec{
     cospec{0,-1},cospec{1,-1},cospec{1,0},cospec{1,1}}
 
 func (game *gmspec)forplace(b []btspec){
-    p:=len(game.sr)-1
+    p:=game.sr.mulen()-1
     for i:=0;i<len(b);i++ {
-        p=game.nextprompt(p,": ")
+        p=game.munextprompt(p,": ")
         fmt.Fprintf(game.fd,"%d%d\n",
             b[i].p[0].i-1,b[i].p[0].j-1)
-        p=game.nextprompt(p,": ")
+        p=game.munextprompt(p,": ")
         d:=cospec{b[i].p[1].i-b[i].p[0].i,b[i].p[1].j-b[i].p[0].j}
         var j int
         for j=0;j<len(dirs);j++ {
             if dirs[j]==d { break }
         }
-           fmt.Fprintf(game.fd,"%d\n",j+1)
+        fmt.Fprintf(game.fd,"%d\n",j+1)
     }
-    p=game.youhave()
-    game.nextprompt(p,": ")
+    p=game.muyouhave()
+    game.munextprompt(p,": ")
 }
 
 func (game *gmspec)bbcoutgoing(r []cospec){
-    p:=len(game.sr)-1
+    p:=game.sr.mulen()-1
     for i:=0;i<len(r);i++ {
-        p=game.nextprompt(p,"? ")
+        p=game.munextprompt(p,"? ")
         fmt.Fprintf(game.fd,"%d,%d\n",r[i].i,r[i].j)
     }
-    game.nextprompt(p,"? ")
+    game.munextprompt(p,"? ")
 }
 
 func (game *gmspec)foroutgoing(r []cospec){
-    p:=len(game.sr)-1
+    p:=game.sr.mulen()-1
     for i:=0;i<len(r);i++ {
-        p=game.nextprompt(p,": ")
+        p=game.munextprompt(p,": ")
         fmt.Fprintf(game.fd,"%d%d\n",r[i].i-1,r[i].j-1)
     }
-    game.youhave()
-    game.nextprompt(p,": ")
+    game.muyouhave()
+    game.munextprompt(p,": ")
 }
 
 func (game *gmspec)bbcincoming()([]cospec,stspec) {
     r:=make([]cospec,0,7)
-    var p int
-    for p=len(game.sr)-1;p>=0;p-- {
-        if ishead(game.sr[p],"I HAVE WON"){
-            return r,won
-        } else if ishead(game.sr[p],"YOU HAVE WON"){
-            return r,lost
-        } else if ishead(game.sr[p],"I HAVE "){
-            break
-        }
-    }
-    sn:=strings.Fields(game.sr[p])
+    var (p int; sn []string)
+	getst:=func()stspec {
+	    for p=len(game.sr.s)-1;p>=0;p-- {
+	        if ishead(game.sr.s[p],"I HAVE WON"){
+	            return won
+	        } else if ishead(game.sr.s[p],"YOU HAVE WON"){
+	            return lost
+			} else if ishead(game.sr.s[p],"I HAVE "){
+    			sn=strings.Fields(game.sr.s[p])
+				break
+			}
+	    }
+		return running
+	}
+	game.sr.mu.Lock()
+	st:=getst()
+	game.sr.mu.Unlock()
+	if st!=running { return r,st }
     if len(sn)!=4 {
         fmt.Printf("%s:Couldn't parse number of shots from '%s'\n",
-            game.log,game.sr[p])
+            game.log,game.sr.s[p])
         myexit(1)
     }
     n,err:=strconv.Atoi(sn[2])
@@ -409,7 +461,7 @@ func (game *gmspec)bbcincoming()([]cospec,stspec) {
     }
     p++; n+=p
     for i:=p;i<n;i++ {
-        sxy:=strings.Fields(game.sr[i])
+        sxy:=strings.Fields(game.sr.mustr(i))
         if len(sxy)==2 {
             x,err:=strconv.Atoi(sxy[0])
             if err!=nil { continue }
@@ -423,20 +475,27 @@ func (game *gmspec)bbcincoming()([]cospec,stspec) {
 
 func (game *gmspec)forincoming()([]cospec,stspec) {
     r:=make([]cospec,0,7)
-    var p int
-    for p=len(game.sr)-1;p>=0;p-- {
-        if ishead(game.sr[p]," YOU LOSE!"){
-            return r,won
-        } else if ishead(game.sr[p]," YOU WIN!"){
-            return r,lost
-        } else if strings.Contains(game.sr[p],"AND I HAVE"){
-            break
-        }
+    var (p int; sn []string)
+	getst:=func()stspec {
+	    for p=len(game.sr.s)-1;p>=0;p-- {
+	        if ishead(game.sr.s[p]," YOU LOSE!"){
+	            return won
+	        } else if ishead(game.sr.s[p]," YOU WIN!"){
+	            return lost
+	        } else if strings.Contains(game.sr.s[p],"AND I HAVE"){
+    			sn=strings.Fields(game.sr.s[p])
+	            break
+	        }
+		}
+		return running
     }
-    sn:=strings.Fields(game.sr[p])
+	game.sr.mu.Lock()
+	st:=getst()
+	game.sr.mu.Unlock()
+	if st!=running { return r,st }
     if len(sn)!=9 {
         fmt.Printf("%s:Couldn't parse number of shots from '%s'\n",
-            game.log,game.sr[p])
+            game.log,game.sr.s[p])
         myexit(1)
     }
     n,err:=strconv.Atoi(sn[7])
@@ -447,7 +506,7 @@ func (game *gmspec)forincoming()([]cospec,stspec) {
     }
     p+=2; n+=p
     for i:=p;i<n;i++ {
-        sxy:=strings.Fields(game.sr[i])
+        sxy:=strings.Fields(game.sr.mustr(i))
         if len(sxy)==3 {
             xy,err:=strconv.Atoi(sxy[2])
             if err!=nil { continue }
@@ -533,12 +592,12 @@ func doggleship() {
     fmt.Printf("doggleship--salvo between two programs V5\n"+
         "Written 2022 by Eric Olson\n\n")
 //    bt1:=bospec{bbcboot,"./bbcsalvo"}
-//    bt1:=bospec{forboot,"./gfsalvo"}
+    bt1:=bospec{forboot,"./gfsalvo"}
 //    bt2:=bospec{forboot,"./gfsalvo"}
-    bt1:=bospec{bbcboot,"./cheater"}
+//    bt1:=bospec{bbcboot,"./cheater"}
     bt2:=bospec{bbcboot,"./cheater"}
     fmt.Printf("Player one is %s of type %s\n",bt1.pname,bt1.tp())
-    fmt.Printf("Player two is %s of type %s\n",bt1.pname,bt2.tp())
+    fmt.Printf("Player two is %s of type %s\n",bt2.pname,bt2.tp())
     fmt.Printf("\n%7s %7s %7s\n","Trial","Winner","Turns")
     for trial=1;trial<=tnum;trial++ {
         dotrial(bt1,bt2)
