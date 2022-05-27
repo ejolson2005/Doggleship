@@ -139,7 +139,10 @@ func (sr *srspec)mulen()int{
 
 func (sr *srspec)mustr(p int)string{
     sr.mu.Lock()
-    s:=sr.s[p]
+    s:=""
+    if p<len(sr.s) {
+        s=sr.s[p]
+    } 
     sr.mu.Unlock()
     return s
 }
@@ -222,6 +225,17 @@ func prboats(b []btspec){
     }
 }
 
+var winlose=[]string{
+    "I HAVE WON","YOU HAVE WON"," YOU WIN!"," YOU LOSE!",
+}
+
+func isend(s string)bool {
+    for i:=0;i<len(winlose);i++ {
+        if ishead(s,winlose[i]) { return true }
+    }
+    return false
+}
+
 func (game *gmspec)mufindtail(s string)bool {
     found:=false
     dotail:=func()bool {
@@ -232,10 +246,7 @@ func (game *gmspec)mufindtail(s string)bool {
         }
         if p>2 {
             for q:=p-2;q<=p;q++ {
-                if game.sr.s[q]=="I HAVE WON"||
-                    game.sr.s[q]=="YOU HAVE WON"||
-                    game.sr.s[q]==" YOU WIN!"||
-                    game.sr.s[q]==" YOU LOSE!" {
+                if isend(game.sr.s[q]) {
                     found=false
                     return true
                 }
@@ -268,12 +279,9 @@ func (game *gmspec)munextprompt(p int,s string)int {
 func (game *gmspec)muyouhave()int{
     match:=func()int {
         p:=len(game.sr.s)
-        for i:=p-3;i<p;i++ {
-            if game.sr.s[i]=="I HAVE WON" { return i }
-            if game.sr.s[i]=="YOU HAVE WON" { return i }
-            if game.sr.s[i]==" YOU WIN!" { return i }
-            if game.sr.s[i]==" YOU LOSE!" { return i }
-            if strings.Contains(game.sr.s[i],"AND YOU HAVE") { return i }
+        for q:=p-3;q<p;q++ {
+            if isend(game.sr.s[q]) { return q }
+            if strings.Contains(game.sr.s[q],"AND YOU HAVE") { return q }
         }
         return 0
     }
@@ -373,7 +381,7 @@ func forboot(game *gmspec,cmd,log string) {
 }
 
 func (game *gmspec)bbcplace(b []btspec){
-    p:=game.sr.mulen()-1
+    p:=game.sr.mulen()-2
     for i:=0;i<len(b);i++ {
         for j:=0;j<len(b[i].p);j++ {
             p=game.munextprompt(p,"? ")
@@ -392,7 +400,7 @@ var dirs=[8]cospec{
     cospec{0,-1},cospec{1,-1},cospec{1,0},cospec{1,1}}
 
 func (game *gmspec)forplace(b []btspec){
-    p:=game.sr.mulen()-1
+    p:=game.sr.mulen()-2
     for i:=0;i<len(b);i++ {
         p=game.munextprompt(p,": ")
         fmt.Fprintf(game.fd,"%d%d\n",
@@ -410,7 +418,7 @@ func (game *gmspec)forplace(b []btspec){
 }
 
 func (game *gmspec)bbcoutgoing(r []cospec){
-    p:=game.sr.mulen()-1
+    p:=game.sr.mulen()-2
     for i:=0;i<len(r);i++ {
         p=game.munextprompt(p,"? ")
         fmt.Fprintf(game.fd,"%d,%d\n",r[i].i,r[i].j)
@@ -419,7 +427,7 @@ func (game *gmspec)bbcoutgoing(r []cospec){
 }
 
 func (game *gmspec)foroutgoing(r []cospec){
-    p:=game.sr.mulen()-1
+    p:=game.sr.mulen()-2
     for i:=0;i<len(r);i++ {
         p=game.munextprompt(p,": ")
         fmt.Fprintf(game.fd,"%d%d\n",r[i].i-1,r[i].j-1)
@@ -589,13 +597,14 @@ func (bt *bospec)tp()string {
 
 func doggleship() {
     go onexit()
-    fmt.Printf("doggleship--salvo between two programs V5\n"+
+    fmt.Printf("doggleship--salvo between two programs V7\n"+
         "Written 2022 by Eric Olson\n\n")
 //    bt1:=bospec{bbcboot,"./bbcsalvo"}
-    bt1:=bospec{forboot,"./gfsalvo"}
+//    bt1:=bospec{forboot,"./gfsalvo"}
 //    bt2:=bospec{forboot,"./gfsalvo"}
 //    bt1:=bospec{bbcboot,"./cheater"}
-    bt2:=bospec{bbcboot,"./cheater"}
+    bt1:=bospec{bbcboot,"./player1"}
+    bt2:=bospec{bbcboot,"./player2"}
     fmt.Printf("Player one is %s of type %s\n",bt1.pname,bt1.tp())
     fmt.Printf("Player two is %s of type %s\n",bt2.pname,bt2.tp())
     fmt.Printf("\n%7s %7s %7s\n","Trial","Winner","Turns")

@@ -1,16 +1,18 @@
 /*  cheater--salvo using covert military intelligence
     Written 2022 by Eric Olson
 
-    Version 1 play SALVO with random cheating */
+    Version 1 play SALVO with random cheating
+    Version 2 add options processing to specify gamma */
 
 import Glibc
 
 let π=4*atan(1.0)
 let N=10
-let γ=0.22
+var γ=0.22
 
 func getinput()->String {
     print("? ",terminator:"")
+    fflush(stdout)
     let result=readLine()
     if result==nil {
         exit(1)
@@ -195,7 +197,7 @@ func dolose(){
 func getempty(_ 🐮:inout gridsp)->coordsp{
     let ρ={()->Double in
         if numshots(&🐮)==0 {
-            return 1.0
+            return γ
         }
         return Double.random(in:0..<1.0)
     }()
@@ -284,9 +286,51 @@ func incoming(_ 🐱:inout gridsp,_ 🐶:inout gridsp,_ t:Int){
     }    
 }
 
+func help(){
+    print("Usage: cheater [options]",
+    "\n\nwhere options are",
+    "\n\t-g x\tSet cheating probability to x (default \(γ)).",
+    "\n\t-h  \tPrint this message.")
+}
+
+func doargs(_ arg:inout [String])->Int {
+    var i=1
+    while i<arg.count {
+        func getnum()->Double{
+            if i+1<arg.count {
+                let x=Double(arg[i+1])
+                if !(nil==x) {
+                    return x!
+                } 
+            }
+            print(arg[i],"requires a numeric argument.")
+            exit(1)
+        }
+        switch arg[i] {
+    case "-g":
+            γ=getnum()
+            i+=1
+    case "-h":
+            help()
+            exit(0)
+    default:
+            return i
+        }
+        i+=1
+    }
+    return i
+}
+
 func main(){
-    print("cheater--salvo using covert military intelligence V1",
+    print("cheater--salvo using covert military intelligence V2",
         "\nWritten 2022 by Eric Olson\n")
+    let i=doargs(&CommandLine.arguments)
+    if i<CommandLine.arguments.count {
+        print("Unknown option '\(CommandLine.arguments[i])'\n")
+        help()
+        exit(1)
+    }
+    print("gamma = \(γ)\n")
     var 🐶=Array(repeating:Array(repeating:0,count:N),count:N) as gridsp
     putships(&🐶)
     let start={ ()->String in
