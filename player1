@@ -1,0 +1,2 @@
+#!/bin/bash
+exec ./cheater -g 0.17
