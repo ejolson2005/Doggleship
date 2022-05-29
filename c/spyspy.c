@@ -7,7 +7,7 @@
 #include "weyl32.h"
 
 #define N 10
-static mint32 gamma1=1900,gamma2=2200,rseq=12345;
+static mint32 gamma1=1900,gamma2=2200,rseq=127;
 static int tmax=67;
 static int trial,turn,quiet,winc,wind,verb;
 

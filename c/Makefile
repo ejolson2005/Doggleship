@@ -1,5 +1,5 @@
 GCC=gcc
-FLAGS=-O2 -Wall -DHASU64
+FLAGS=-O2 -Wall -DHASU64 -DASCII
 #FLAGS=-O2 -Wall
 
 TARGETS=weyl32.o spyspy weyl32
