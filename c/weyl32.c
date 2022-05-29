@@ -7,6 +7,7 @@
 #ifdef HASU64
 
 #include <stdint.h>
+#include <inttypes.h>
 typedef struct {
     uint64_t x,w,s;
 } rstate;
@@ -20,12 +21,12 @@ static mlint rint32(rstate *p){
 # ifdef DEBUG
 static mlint rint32d(rstate *p){
     p->x*=p->x; p->w+=p->s;
-    printf("1: p->x=%lu\n",p->x);
-    printf("2: p->w=%lu\n",p->w);
+    printf("1: p->x=%"PRIu64"\n",p->x);
+    printf("2: p->w=%"PRIu64"\n",p->w);
     p->x+=p->w;
-    printf("3: p->x=%lX\n",p->x);
+    printf("3: p->x=%"PRIX64"\n",p->x);
     p->x=(p->x>>32)|(p->x<<32);
-    printf("4: p->x=%lX\n",p->x);
+    printf("4: p->x=%"PRIX64"\n",p->x);
     return (mlint)p->x&0x7fffffff;
 }
 # endif
@@ -321,7 +322,7 @@ int main(){
         printf("gs.s="); outhex(gs.s); printf(" or "); out64(gs.s); printf("\n")
 ;
 #else
-        printf("gs.s=%lX or %lu\n",gs.s,gs.s);
+        printf("gs.s=%"PRIX64" or %"PRIu64"\n",gs.s,gs.s);
 #endif
     for(i=0;i<4;i++){
         r=rint32d(&gs);
@@ -333,7 +334,7 @@ int main(){
         printf("gs.x="); outhex(gs.x); printf(" or "); out64(gs.x); printf("\n")
 ;
 #else
-        printf("gs.x=%lX or %lu\n",gs.x,gs.x);
+        printf("gs.x=%"PRIX64" or %"PRIu64"\n",gs.x,gs.x);
 #endif
         for(i=0;i<10;i++){
             k=rdice(12);
