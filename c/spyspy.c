@@ -228,18 +228,18 @@ int attack(bdspec a,bdspec b,int gamma){
     snum=numshots(f);
     onum=tally(f,b);
     if(snum==0){
-		if(verb){
-	        printf("The %s has no more shots.\n",aname);
-	        printf("The %s has won!\n\n",bname);
-		}
+        if(verb){
+            printf("The %s has no more shots.\n",aname);
+            printf("The %s has won!\n\n",bname);
+        }
         return -1;
     }
     if(verb) printf("The %s has %d shots.\n",aname,snum);
     if(snum>onum){
-		if(verb){
-			printf("There are only %d remaining openings!\n",onum);
-			printf("The %s has won!\n\n",aname);
-		}
+        if(verb){
+            printf("There are only %d remaining openings!\n",onum);
+            printf("The %s has won!\n\n",aname);
+        }
         return 1;
     }
     oship=0; ocount=0;
@@ -261,7 +261,7 @@ int attack(bdspec a,bdspec b,int gamma){
             if(fgood) break;
         }
         getopen(&i,&j,b,o[s]);
-		if(verb) printf("Shot %d: (%d,%d)\n",s+1,i+1,j+1);
+        if(verb) printf("Shot %d: (%d,%d)\n",s+1,i+1,j+1);
         k=-b[i][j]-1;
         if(k>=0) { f[k]++; ocount++; }
         x[s]=i; y[s]=j;
@@ -269,13 +269,13 @@ int attack(bdspec a,bdspec b,int gamma){
     for(s=0;s<snum;s++) b[x[s]][y[s]]=turn;
     for(k=0;k<4;k++){
         for(s=0;s<f[k];s++){
-			if(verb){
-				printf("The %s %s has been hit!\n",
-					bname,ships[k].name);
-			}
+            if(verb){
+                printf("The %s %s has been hit!\n",
+                    bname,ships[k].name);
+            }
         }
     }
-	if(verb) putchar('\n');
+    if(verb) putchar('\n');
     return 0;
 }
 
@@ -323,7 +323,7 @@ void help(){
         "\t-b  \tRun in batch mode without display.\n"
         "\t-c x\tSet gamma to x percent for the cat (default %s).\n"
         "\t-d x\tSet gamma to x percent for the dog (default %s).\n"
-		"\t-v  \tTurn on verbose mode.\n"
+        "\t-v  \tTurn on verbose mode.\n"
         "\t-q  \tOnly print summary at the end.\n"
         "\t-r n\tSet random seed to n (default %d).\n"
         "\t-t n\tRun n number of trials (default %d).\n"
@@ -355,8 +355,8 @@ case 't':
             tmax=atoi(optarg);
             break;
 case 'v':
-			verb=1;
-			break;
+            verb=1;
+            break;
 default:
             help();
             exit(1);
