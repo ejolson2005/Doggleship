@@ -7,13 +7,14 @@
 #include "weyl32.h"
 
 #define N 10
-int gamma1=1900,gamma2=2200,tmax=67,rseq=12345;
-int trial,turn,quiet,winc,wind,verb;
+static mint32 gamma1=1900,gamma2=2200,rseq=12345;
+static int tmax=67;
+static int trial,turn,quiet,winc,wind,verb;
 
-typedef int8_t bdspec[N][N];
-int dirx[8]={1,1,0,-1,-1,-1, 0, 1},
-    diry[8]={0,1,1, 1, 0,-1,-1,-1};
-struct {
+typedef int bdspec[N][N];
+static int dirx[8]={1,1,0,-1,-1,-1, 0, 1},
+           diry[8]={0,1,1, 1, 0,-1,-1,-1};
+static struct {
     char *name,*bd;
     int length,shots;
 } ships[4] = {
@@ -22,7 +23,40 @@ struct {
     { "destroyer<a>"," Da",2,1},
     { "destroyer<b>"," Db",2,1}};
 
-int shipfit(bdspec b,int x,int y,int d,int k){
+static bdspec cat,dog;
+static char *tframe,*bframe;
+#ifdef ASCII
+static char *petscii[8]={ "|","+","-","+","|","+","-","+" };
+#else
+static char *petscii[8]={ "┃","┓","━","┏","┃","┗","━","┛" };
+#endif
+
+/*  Indexing of petscii is for following positions of box frame.
+
+        3 2 1
+        4   0
+        5 6 7
+
+    Use strings to allow inclusion of utf8 and escape characters.  */
+
+#ifdef HASU64
+static int shipfit(bdspec b,int x,int y,int d,int k);
+static void shipput(bdspec b,int x,int y,int d,int k);
+static void place(bdspec b);
+static void pline(int z[]);
+static char *addstr(char *p,char *q);
+static int tally(int f[4],bdspec b);
+static int numshots(int f[4]);
+static void getopen(int *x,int *y,bdspec b,int o);
+static int fship(bdspec b,int s);
+static char *getname(bdspec b);
+static int attack(bdspec a,bdspec b,int gamma);
+static char *fptoa(mint32 x,int dp);
+static mint32 atofp(char *p,int dp);
+extern int main(int argc,char *argv[]);
+#endif
+
+static int shipfit(b,x,y,d,k) bdspec b; int x,y,d,k; {
     int l,lnum=ships[k].length;
     for(l=0;l<lnum;l++){
         if(x<0||x>=N||y<0||y>=N) return 0;
@@ -32,7 +66,7 @@ int shipfit(bdspec b,int x,int y,int d,int k){
     return 1;
 }
 
-void shipput(bdspec b,int x,int y,int d,int k){
+static void shipput(b,x,y,d,k) bdspec b; int x,y,d,k; {
     int l,lnum=ships[k].length;
     k=-k-1;
     for(l=0;l<lnum;l++){
@@ -41,7 +75,7 @@ void shipput(bdspec b,int x,int y,int d,int k){
     }
 }
 
-void place(bdspec b){
+static void place(b) bdspec b; {
     int i,j,k;
     for(i=0;i<N;i++) for(j=0;j<N;j++) b[i][j]=0;
     for(k=0;k<4;k++){
@@ -55,7 +89,7 @@ void place(bdspec b){
     }
 }
 
-void pline(signed char z[]){
+static void pline(z) int z[]; {
     int j,k;
     for(j=0;j<N;j++){
         if(z[j]==0) {
@@ -71,29 +105,12 @@ void pline(signed char z[]){
     }
 }
 
-char *addstr(char *p,char *q){
+static char *addstr(p,q) char *p,*q; {
     while(*q) *p++=*q++;
     return p;
 }
 
-bdspec cat,dog;
-
-#ifdef ASCII
-char *petscii[8]={ "|","+","-","+","|","+","-","+" };
-#else
-char *petscii[8]={ "┃","┓","━","┏","┃","┗","━","┛" };
-#endif
-
-/*  Indexing of petscii is for following positions of box frame.
-
-        3 2 1
-        4   0
-        5 6 7
-
-    Use strings to allow inclusion of utf8 and escape characters.  */
-
-char *tframe,*bframe;
-void mkframe(){
+static void mkframe(){
     int i,k,tf,bf;
     char *p;
     if(tframe) return;
@@ -129,7 +146,7 @@ void mkframe(){
     *p=0;
 }
 
-void pboards(){
+static void pboards(){
     int i;
     char buf[64];
     if(quiet) return;
@@ -149,7 +166,7 @@ void pboards(){
     printf("%-35s Wins %d Losses %d\n\n",buf,wind,winc);
 }
 
-int tally(int f[4],bdspec b){
+static int tally(f,b) int f[4]; bdspec b; {
     int i,j,k,r;
     for(k=0;k<4;k++) f[k]=0;
     r=0;
@@ -167,7 +184,7 @@ int tally(int f[4],bdspec b){
     return r;
 }
 
-int numshots(int f[4]){
+static int numshots(f) int f[4]; {
     int k,r;
     r=0;
     for(k=0;k<4;k++){
@@ -176,7 +193,7 @@ int numshots(int f[4]){
     return r;
 }
 
-void getopen(int *x,int *y,bdspec b,int o){
+static void getopen(x,y,b,o) int *x,*y; bdspec b; int o; {
     int i,j;
     for(i=0;i<N;i++){
         for(j=0;j<N;j++){
@@ -193,7 +210,7 @@ void getopen(int *x,int *y,bdspec b,int o){
     exit(1);
 }
 
-int fship(bdspec b,int s){
+static int fship(b,s) bdspec b; int s; {
     int i,j,r,o;
     o=0;
     for(i=0;i<N;i++){
@@ -212,14 +229,14 @@ int fship(bdspec b,int s){
     exit(1);
 }
 
-char *getname(bdspec b){
+static char *getname(b) bdspec b; {
     if(b==cat){
         return "cat";
     } 
     return "dog";
 }
 
-int attack(bdspec a,bdspec b,int gamma){
+static int attack(a,b,gamma) bdspec a,b; int gamma; {
     int f[4],s,snum,x[7],y[7],o[7],onum,oship,ocount;
     int i,j,k,fgood,g;
     char *aname,*bname;
@@ -279,44 +296,43 @@ int attack(bdspec a,bdspec b,int gamma){
     return 0;
 }
 
-char *fptoa(int x,int dp){
+static char *fptoa(x,dp) mint32 x; int dp; {
     int d;
     static char xb[128],*xs;
     if(xs-xb<24) xs=&xb[128];
     *--xs=0;
-    for(d=0;d<dp;d++){
-        *--xs=x%10+'0';
-        x/=10;
-    }
-    *--xs='.';
+	if(dp>0){
+	    for(d=0;d<dp;d++){
+	        *--xs=x%10+'0';
+	        x/=10;
+	    }
+	    *--xs='.';
+	}
     if(x==0) *--xs='0';
-    else while(x>0){
+    else while(x!=0){
         *--xs=x%10+'0';
         x/=10;
     }
     return xs;
 }
 
-int atofp(char *p,int dp){
-    int r=0,sigma=-1;
-    if(*p=='-'){
-        sigma=1; p++;
-    }
+static mint32 atofp(p,dp) char *p; int dp; {
+    mint32 r=0;
     while(*p>='0'&&*p<='9'){
-        r=r*10-*p+'0'; p++;
+        r=r*10+*p-'0'; p++;
     }
     if(*p=='.') p++;
     while(dp>0){
         r*=10;
         if(*p>='0'&&*p<='9'){
-            r+=-*p+'0'; p++;
+            r+=*p-'0'; p++;
         }
         dp--;
     }
-    return sigma*r;
+    return r;
 }
 
-void help(){
+static void help(){
     fprintf(stderr, 
         "Usage: spyspy [options]\n\n"
         "where options are\n"
@@ -325,14 +341,14 @@ void help(){
         "\t-d x\tSet gamma to x percent for the dog (default %s).\n"
         "\t-v  \tTurn on verbose mode.\n"
         "\t-q  \tOnly print summary at the end.\n"
-        "\t-r n\tSet random seed to n (default %d).\n"
+        "\t-r n\tSet random seed to n (default %s).\n"
         "\t-t n\tRun n number of trials (default %d).\n"
         "\t-h  \tPrint this message.\n",
-        fptoa(gamma1,2),fptoa(gamma2,2),rseq,tmax);
+        fptoa(gamma1,2),fptoa(gamma2,2),fptoa(rseq,0),tmax);
     exit(1);
 }
 
-void docmdline(int argc,char *argv[]){
+static void docmdline(argc,argv) int argc; char *argv[]; {
     int opt;
     while((opt=getopt(argc,argv,"bc:d:hqr:t:v"))!=-1){
         switch (opt) {
@@ -349,7 +365,7 @@ case 'q':
             quiet=2;
             break;
 case 'r':
-            rseq=atoi(optarg);
+            rseq=atofp(optarg,0);
             break;
 case 't':
             tmax=atoi(optarg);
@@ -364,15 +380,15 @@ default:
     }
 }
 
-int main(int argc,char *argv[]){
+int main(argc,argv) int argc; char *argv[]; {
     int w;
-    uint32_t pwin;
+    mint32 pwin;
     printf("spyspy--Spy Versus Spy Battleship V1\n");
     printf("Written 2022 by Eric Olson\n\n");
     docmdline(argc,argv);
     rseed(rseq);
-    printf("gamma1=%s, gamma2=%s\n\n",
-        fptoa(gamma1,2),fptoa(gamma2,2));
+    printf("gamma1=%s, gamma2=%s, rseq=%s\n\n",
+        fptoa(gamma1,2),fptoa(gamma2,2),fptoa(rseq,0));
     if(quiet==1){
         printf("%7s %7s %7s\n","Trial","Winner","Turns");
     }
@@ -394,7 +410,7 @@ int main(int argc,char *argv[]){
         pboards();
         if(quiet==1) printf("%7d %7d %7d\n",trial,w>0?1:2,turn);
     }
-    pwin=((uint32_t)winc*10000+(tmax>>1))/tmax;
+    pwin=((mint32)winc*10000+(tmax>>1))/tmax;
     printf("Out of %d trials\n"
         "\t%s wins %s percent of the time.\n"
         "\t%s wins %s percent of the time.\n",
