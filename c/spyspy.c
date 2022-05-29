@@ -139,9 +139,9 @@ void pboards(){
     puts(tframe);
     for(i=0;i<N;i++){
         printf("%s",petscii[4]);
-        pline(cat[i]);
-        printf(" %s   %s",petscii[0],petscii[4]);
         pline(dog[i]);
+        printf(" %s   %s",petscii[0],petscii[4]);
+        pline(cat[i]);
         printf(" %s\n",petscii[0]);
     }
     puts(bframe);
