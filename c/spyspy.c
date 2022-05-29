@@ -7,7 +7,7 @@
 #include "weyl32.h"
 
 #define N 10
-static mint32 gamma1=1900,gamma2=2200,rseq=127;
+static mlint gamma1=1900,gamma2=2200,rseq=127;
 static int tmax=67;
 static int trial,turn,quiet,winc,wind,verb;
 
@@ -51,8 +51,8 @@ static void getopen(int *x,int *y,bdspec b,int o);
 static int fship(bdspec b,int s);
 static char *getname(bdspec b);
 static int attack(bdspec a,bdspec b,int gamma);
-static char *fptoa(mint32 x,int dp);
-static mint32 atofp(char *p,int dp);
+static char *fptoa(mlint x,int dp);
+static mlint atofp(char *p,int dp);
 extern int main(int argc,char *argv[]);
 #endif
 
@@ -296,7 +296,7 @@ static int attack(a,b,gamma) bdspec a,b; int gamma; {
     return 0;
 }
 
-static char *fptoa(x,dp) mint32 x; int dp; {
+static char *fptoa(x,dp) mlint x; int dp; {
     int d;
     static char xb[128],*xs;
     if(xs-xb<24) xs=&xb[128];
@@ -316,8 +316,8 @@ static char *fptoa(x,dp) mint32 x; int dp; {
     return xs;
 }
 
-static mint32 atofp(p,dp) char *p; int dp; {
-    mint32 r=0;
+static mlint atofp(p,dp) char *p; int dp; {
+    mlint r=0;
     while(*p>='0'&&*p<='9'){
         r=r*10+*p-'0'; p++;
     }
@@ -382,7 +382,7 @@ default:
 
 int main(argc,argv) int argc; char *argv[]; {
     int w;
-    mint32 pwin;
+    mlint pwin;
     printf("spyspy--Spy Versus Spy Battleship V1\n");
     printf("Written 2022 by Eric Olson\n\n");
     docmdline(argc,argv);
@@ -410,7 +410,7 @@ int main(argc,argv) int argc; char *argv[]; {
         pboards();
         if(quiet==1) printf("%7d %7d %7d\n",trial,w>0?1:2,turn);
     }
-    pwin=((mint32)winc*10000+(tmax>>1))/tmax;
+    pwin=((mlint)winc*10000+(tmax>>1))/tmax;
     printf("Out of %d trials\n"
         "\t%s wins %s percent of the time.\n"
         "\t%s wins %s percent of the time.\n",

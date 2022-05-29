@@ -4,16 +4,16 @@
 # ifdef HASU64
 
 #include <stdint.h>
-typedef int32_t mint32;
-typedef uint8_t muint8;
-extern char *my32toa(mint32 x);
-extern void rseed(mint32 x);
+typedef int32_t mlint;
+typedef uint8_t muint;
+extern char *my32toa(mlint x);
+extern void rseed(mlint x);
 extern unsigned int rdice(unsigned int d);
 
 # else
 
-typedef long mint32;
-typedef unsigned int muint8;
+typedef long mlint;
+typedef unsigned int muint;
 extern char *my32toa();
 extern void rseed();
 extern unsigned int rdice();

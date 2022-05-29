@@ -11,12 +11,26 @@ typedef struct {
     uint64_t x,w,s;
 } rstate;
 static rstate gs;
-static mint32 rint32(rstate *p){
+static mlint rint32(rstate *p){
     p->x*=p->x; p->w+=p->s;
     p->x+=p->w; p->x=(p->x>>32)|(p->x<<32);
-    return (mint32)p->x&0x7fffffff;
+    return (mlint)p->x&0x7fffffff;
 }
-void rseed(mint32 x){
+
+# ifdef DEBUG
+static mlint rint32d(rstate *p){
+    p->x*=p->x; p->w+=p->s;
+    printf("1: p->x=%lu\n",p->x);
+    printf("2: p->w=%lu\n",p->w);
+    p->x+=p->w;
+    printf("3: p->x=%lX\n",p->x);
+    p->x=(p->x>>32)|(p->x<<32);
+    printf("4: p->x=%lX\n",p->x);
+    return (mlint)p->x&0x7fffffff;
+}
+# endif
+
+void rseed(mlint x){
     gs.x=x;
     gs.w=0;
     gs.s=13091206342165455529u;
@@ -24,63 +38,68 @@ void rseed(mint32 x){
 
 #else
 
-typedef muint8 my64[8];
-typedef muint8 mybcd[20];
+#define my64len (8/(int)sizeof(muint))
+#define my64hlf (4/(int)sizeof(muint))
+#define my64msk ((muint)(-1))
+#define my64sft (8*(int)sizeof(muint))
+
+typedef muint my64[my64len];
+typedef char mybcd[20];
 
 static void add64(a,b) my64 a,b; {
     int i;
-    unsigned int r,s=0;
-    for(i=0;i<8;i++){
-        r=a[i]+b[i]+s;
-        a[i]=r&0xff;
-        s=r>>8;
+    mlint r,s=0;
+    for(i=0;i<my64len;i++){
+        r=(mlint)a[i]+b[i]+s;
+        a[i]=r&my64msk;
+        s=r>>my64sft;
     }
 }
 
-static void cadd64(a,c) my64 a; unsigned int c; {
+static void cadd64(a,c) my64 a; muint c; {
     int i;
-    unsigned int r,s=c;
-    for(i=0;i<8;i++){
+    mlint r,s=c;
+    for(i=0;i<my64len;i++){
         r=a[i]+s;
-        a[i]=r&0xff;
-        s=r>>8;
+        a[i]=r&my64msk;
+        s=r>>my64sft;
     }
 }
 
-static void cmul64(a,b) my64 a; muint8 b; {
+static void cmul64(a,b) my64 a; muint b; {
     int i;
-    unsigned int r,s=0;
-    for(i=0;i<8;i++){
-        r=a[i]*b+s;
-        a[i]=r&0xff;
-        s=r>>8;
+    mlint r,s=0;
+    for(i=0;i<my64len;i++){
+        r=(mlint)a[i]*b+s;
+        a[i]=r&my64msk;
+        s=r>>my64sft;
     }
 }
 
 static void mul2my64(a) my64 a; {
     int i;
-    unsigned int r,s=0;
-    for(i=0;i<8;i++){
-        r=(a[i]<<1)+s;
-        a[i]=r&0xff;
-        s=r>>8;
+    mlint r,s=0;
+    for(i=0;i<my64len;i++){
+        r=((mlint)a[i]<<1)+s;
+        a[i]=r&my64msk;
+        s=r>>my64sft;
     }
 }
 
 static void mul64(a,b) my64 a,b; {
     my64 c,d;
-    int i,j;
-    unsigned int r;
-    for(i=0;i<8;i++) c[i]=a[i];
-    for(i=0;i<8;i++) d[i]=0;
-    for(i=0;i<8;i++){
-        for(j=1;j<256;j<<=1){
-            r=b[i]&j;
+    int i;
+    mlint r,s;
+    for(i=0;i<my64len;i++) c[i]=a[i];
+    for(i=0;i<my64len;i++) d[i]=0;
+    for(i=0;i<my64len;i++){
+        for(s=1;s<my64msk;s<<=1){
+            r=b[i]&s;
             if(r) add64(d,c);
             mul2my64(c);
         }
     }
-    for(i=0;i<8;i++) a[i]=d[i];
+    for(i=0;i<my64len;i++) a[i]=d[i];
 }
 
 static int mydigit(a) char a; {
@@ -88,7 +107,7 @@ static int mydigit(a) char a; {
     return 1;
 }
 
-# ifdef DPRINT
+# ifdef DEBUG
 
 static void outbcd(a) mybcd a; {
     int i,f;
@@ -101,42 +120,6 @@ static void outbcd(a) mybcd a; {
         i--;
     }
     if(f==0) putchar('0');
-}
-
-static void my64tobcd(c,a) mybcd c; my64 a; {
-    int i,j;
-    unsigned int r;
-    for(i=0;i<20;i++) c[i]=0;
-    i=7;
-    for(;;){
-        j=128;
-        for(;;){
-            r=a[i]&j;
-            mul2bcd(c);
-            if(r){
-                incbcd(c);
-            } 
-            if(j==1) break;
-            j>>=1;
-        }
-        if(i==0) break;
-        i--;
-    }
-}
-
-static void incbcd(a) mybcd a; {
-    int i;
-    unsigned int r,s=1;
-    for(i=0;i<20;i++){
-        r=a[i]+s;
-        if(r<10){
-            a[i]=r;
-            s=0;
-        } else {
-            a[i]=r-10;
-            s=1;
-        }
-    }
 }
 
 static void mul2bcd(a) mybcd a; {
@@ -154,32 +137,67 @@ static void mul2bcd(a) mybcd a; {
     }
 }
 
+static void incbcd(a) mybcd a; {
+    int i,r,s=1;
+    for(i=0;i<20;i++){
+        r=a[i]+s;
+        if(r<10){
+            a[i]=r;
+            s=0;
+        } else {
+            a[i]=r-10;
+            s=1;
+        }
+    }
+}
+
+static void my64tobcd(c,a) mybcd c; my64 a; {
+    int i;
+    muint r,s;
+    for(i=0;i<20;i++) c[i]=0;
+    i=my64len-1;
+    for(;;){
+        s=1<<(my64sft-1);
+        for(;;){
+            r=a[i]&s;
+            mul2bcd(c);
+            if(r){
+                incbcd(c);
+            } 
+            if(s==1) break;
+            s>>=1;
+        }
+        if(i==0) break;
+        i--;
+    }
+}
+
 static void out64(a) my64 a; {
     mybcd c;
     my64tobcd(c,a);
     outbcd(c);
 }
 
-static void chexout(h) muint8 h; {
+static void chexout(h) muint h; {
     if(h<10) putchar(h+'0');
-    else putchar(h+'a'-10);
+    else putchar(h+'A'-10);
 }
 
 static void outhex(a) my64 a; {
-    int i,f;
-    unsigned int r;
+    int i,j,f;
+    muint r;
     f=0;
-    i=7;
+    i=my64len-1;
     for(;;){
-        r=(a[i]&0xf0)>>4;
-        if(r) f=1;
-        if(f) chexout(r);
-        r=a[i]&0xf;
-        if(r) f=1;
-        if(f) chexout(r);
+        for(j=my64sft-4;j>=0;j-=4){
+            r=(a[i]&((muint)0xf<<j))>>j;
+            if(r) f=1;
+            if(f) chexout(r);
+        }
         if(i==0) break;
         i--;
     }
+    if(f==0) chexout(0);
 }
 
 # endif
@@ -195,7 +213,7 @@ static void strtobcd(c,s) mybcd c; char *s; {
 
 static void bcdtomy64(c,a) my64 c; mybcd a; {
     int i;
-    for(i=0;i<8;i++) c[i]=0;
+    for(i=0;i<my64len;i++) c[i]=0;
     i=19;
     for(;;){
         cmul64(c,10);
@@ -213,9 +231,9 @@ static void strtomy64(c,s) my64 c; char *s; {
 
 static void mtswap(a) my64 a; {
     int i;
-    muint8 r;
-    for(i=0;i<4;i++){
-        r=a[i]; a[i]=a[i+4]; a[i+4]=r;
+    muint r;
+    for(i=0;i<my64hlf;i++){
+        r=a[i]; a[i]=a[i+my64hlf]; a[i+my64hlf]=r;
     }
 }
 
@@ -224,23 +242,41 @@ typedef struct {
 } rstate;
 
 static rstate gs;
-static mint32 rint32(p) rstate *p; {
+static mlint rint32(p) rstate *p; {
     int i;
-    mint32 r;
+    mlint r;
     mul64(p->x,p->x); add64(p->w,p->s);
     add64(p->x,p->w); mtswap(p->x);
-    r=0x7f&p->x[3];
-    for(i=2;i>=0;i--) r=(r<<8)+p->x[i];
+    r=(my64msk>>1)&p->x[my64hlf-1];
+    for(i=my64hlf-2;i>=0;i--) r=(r<<my64sft)+p->x[i];
     return r;
 }
-void rseed(x) mint32 x; {
+
+# ifdef DEBUG
+static mlint rint32d(p) rstate *p; {
+    int i;
+    mlint r;
+    mul64(p->x,p->x); add64(p->w,p->s);
+    printf("1: p->x=");out64(p->x);printf("\n");
+    printf("2: p->w=");out64(p->w);printf("\n");
+    add64(p->x,p->w); 
+    printf("3: p->x=");outhex(p->x);printf("\n");
+    mtswap(p->x);
+    printf("4: p->x=");outhex(p->x);printf("\n");
+    r=(my64msk>>1)&p->x[my64hlf-1];
+    for(i=my64hlf-2;i>=0;i--) r=(r<<my64sft)+p->x[i];
+    return r;
+}
+# endif
+
+void rseed(x) mlint x; {
     strtomy64(gs.x,my32toa(x));
     strtomy64(gs.w,"0");
     strtomy64(gs.s,"13091206342165455529");
 }
 #endif
 
-char *my32toa(x) mint32 x; {
+char *my32toa(x) mlint x; {
     static char xb[128],*xs;
     if(xs-xb<22) xs=&xb[128];
     *--xs=0;
@@ -253,28 +289,56 @@ char *my32toa(x) mint32 x; {
 }
 
 unsigned int rdice(d) unsigned int d; {
-    mint32 p=0x7fffffff/d;
+    mlint r,p=0x7fffffff/d;
     for(;;){
-        mint32 r=rint32(&gs)/p;
+        r=rint32(&gs)/p;
         if(r<d) return r;
     }
 }
 
 #ifdef DEBUG
 int main(){
-    int i,j;
-    mint32 seeds[10]={0,1,2,3,7,11,13,17,19,23};
-    mint32 sums[10]={
+    int i,j,k;
+    mlint r;
+#ifndef HASU64
+    if(sizeof(mlint)<=sizeof(muint)){
+        printf("Error sizeof(mlint) not bigger than sizeof(luint)!\n");
+        return 1;
+    }
+    printf("my64len=%d\n",my64len);
+    printf("my64hlf=%d\n",my64hlf);
+    printf("my64msk=%u\n",my64msk);
+    printf("my64sft=%d\n",my64sft);
+#endif
+    rseed(12345);
+#ifndef HASU64
+        printf("gs.s="); outhex(gs.s); printf(" or "); out64(gs.s); printf("\n");
+#else
+        printf("gs.s=%lX or %lu\n",gs.s,gs.s);
+#endif
+    for(i=0;i<4;i++){
+        r=rint32d(&gs);
+        printf("rint32(&gs)=%s\n",my32toa(r));
+    }
+    mlint seeds[10]={0,1,2,3,7,11,13,17,19,23};
+    mlint sums[10]={
         1721296309, 2137594665, 259713090, 2052403396,
         1147181833, 1211232592, 1659125656, 262672951,
         2127530667, 1618397408};
     for(j=0;j<10;j++){
         rseed(seeds[j]);
-        volatile mint32 csum=0;
+#ifndef HASU64
+        printf("gs.x="); outhex(gs.x); printf(" or "); out64(gs.x); printf("\n");
+#else
+        printf("gs.x=%lX or %lu\n",gs.x,gs.x);
+#endif
+        volatile mlint csum=0;
         for(i=0;i<10;i++){
-            int r=rdice(12);
-            csum=csum*13+r;
+            k=rdice(12);
+            printf("%d ",k);
+            csum=csum*13+k;
         }
+        printf("\n");
         csum&=0x7fffffff;
         printf("Seed %s checksum %s %s validation\n",
             my32toa(seeds[j]),my32toa(csum),

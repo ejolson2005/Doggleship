@@ -2,15 +2,18 @@ GCC=gcc
 #FLAGS=-O2 -Wall -DASCII
 FLAGS=-O2 -Wall -DHASU64
 
-TARGETS=weyl32.o spyspy weyl32
+TARGETS=weyl32.o spyspy weyl32 weyl32gold
 
 all: $(TARGETS)
 
 spyspy: spyspy.c weyl32.o
 	$(GCC) $(FLAGS) -o spyspy spyspy.c weyl32.o
 
+weyl32gold: weyl32.c weyl32.h
+	$(GCC) -O2 -Wall -DHASU64 -DDEBUG -o weyl32gold weyl32.c
+
 weyl32: weyl32.c weyl32.h
-	$(GCC) $(FLAGS) -DDEBUG -o weyl32 weyl32.c
+	$(GCC) -O2 -Wall -DDEBUG -o weyl32 weyl32.c
 
 weyl32.o: weyl32.c weyl32.h
 	$(GCC) $(FLAGS) -c weyl32.c
