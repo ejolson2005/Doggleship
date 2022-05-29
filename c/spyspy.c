@@ -369,8 +369,8 @@ int main(int argc,char *argv[]){
     uint32_t pwin;
     printf("spyspy--Spy Versus Spy Battleship V1\n");
     printf("Written 2022 by Eric Olson\n\n");
-    rseed(rseq);
     docmdline(argc,argv);
+    rseed(rseq);
     printf("gamma1=%s, gamma2=%s\n\n",
         fptoa(gamma1,2),fptoa(gamma2,2));
     if(quiet==1){
