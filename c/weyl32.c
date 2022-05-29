@@ -225,13 +225,13 @@ typedef struct {
 
 static rstate gs;
 static mint32 rint32(p) rstate *p; {
-	int i;
-	mint32 r;
+    int i;
+    mint32 r;
     mul64(p->x,p->x); add64(p->w,p->s);
     add64(p->x,p->w); mtswap(p->x);
-	r=0x7f&p->x[3];
-	for(i=2;i>=0;i--) r=(r<<8)+p->x[i];
-	return r;
+    r=0x7f&p->x[3];
+    for(i=2;i>=0;i--) r=(r<<8)+p->x[i];
+    return r;
 }
 void rseed(x) mint32 x; {
     strtomy64(gs.x,my32toa(x));
@@ -275,7 +275,7 @@ int main(){
             int r=rdice(12);
             csum=csum*13+r;
         }
-		csum&=0x7fffffff;
+        csum&=0x7fffffff;
         printf("Seed %s checksum %s %s validation\n",
             my32toa(seeds[j]),
             my32toa(csum),csum==sums[j]?"passed":"failed");

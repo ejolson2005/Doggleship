@@ -301,13 +301,13 @@ static char *fptoa(x,dp) mint32 x; int dp; {
     static char xb[128],*xs;
     if(xs-xb<24) xs=&xb[128];
     *--xs=0;
-	if(dp>0){
-	    for(d=0;d<dp;d++){
-	        *--xs=x%10+'0';
-	        x/=10;
-	    }
-	    *--xs='.';
-	}
+    if(dp>0){
+        for(d=0;d<dp;d++){
+            *--xs=x%10+'0';
+            x/=10;
+        }
+        *--xs='.';
+    }
     if(x==0) *--xs='0';
     else while(x!=0){
         *--xs=x%10+'0';
