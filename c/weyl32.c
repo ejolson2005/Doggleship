@@ -277,8 +277,8 @@ int main(){
         }
         csum&=0x7fffffff;
         printf("Seed %s checksum %s %s validation\n",
-            my32toa(seeds[j]),
-            my32toa(csum),csum==sums[j]?"passed":"failed");
+            my32toa(seeds[j]),my32toa(csum),
+            csum==sums[j]?"passed":"failed");
     }
     return 0;
 }
