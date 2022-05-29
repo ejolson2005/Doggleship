@@ -13,7 +13,7 @@ static uint32_t rint32(rstate *p){
     return (uint32_t)p->x;
 }
 
-static rstate rseed() {
+static void rseed() {
     int fd=open("/dev/urandom",O_RDONLY);
     gs.s=0xb5ad4eceda1ce2a9;
     if(fd>=0){

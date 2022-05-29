@@ -1,2 +1,2 @@
 #!/bin/bash
-exec ./cheater -g 0.17
+exec ./cheater -g 0.18
