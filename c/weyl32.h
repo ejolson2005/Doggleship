@@ -1,6 +1,11 @@
 #ifndef weyl32_h
 #define weyl32_h
 
+# ifdef KANDR
+# define void int
+# define volatile
+# endif
+
 # ifdef HASU64
 
 #include <stdint.h>

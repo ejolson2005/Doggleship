@@ -278,7 +278,7 @@ void rseed(x) mlint x; {
 
 char *my32toa(x) mlint x; {
     static char xb[128],*xs;
-    if(xs-xb<22) xs=&xb[128];
+    if(xs-xb<22) xs=(&xb[128]);
     *--xs=0;
     if(x==0) *--xs='0';
     else while(x!=0){
@@ -297,9 +297,15 @@ unsigned int rdice(d) unsigned int d; {
 }
 
 #ifdef DEBUG
+mlint seeds[10]={0,1,2,3,7,11,13,17,19,23};
+mlint sums[10]={
+    1721296309, 741875526, 1761186872, 1326098620,
+    926696101, 1562090973, 2100273949, 105764092,
+    221130887, 1586030047 };
 int main(){
     int i,j,k;
     mlint r;
+    volatile mlint csum=0;
 #ifndef HASU64
     if(sizeof(mlint)<=sizeof(muint)){
         printf("Error sizeof(mlint) not bigger than sizeof(luint)!\n");
@@ -312,7 +318,8 @@ int main(){
 #endif
     rseed(12345);
 #ifndef HASU64
-        printf("gs.s="); outhex(gs.s); printf(" or "); out64(gs.s); printf("\n");
+        printf("gs.s="); outhex(gs.s); printf(" or "); out64(gs.s); printf("\n")
+;
 #else
         printf("gs.s=%lX or %lu\n",gs.s,gs.s);
 #endif
@@ -320,19 +327,14 @@ int main(){
         r=rint32d(&gs);
         printf("rint32(&gs)=%s\n",my32toa(r));
     }
-    mlint seeds[10]={0,1,2,3,7,11,13,17,19,23};
-    mlint sums[10]={
-        1721296309, 2137594665, 259713090, 2052403396,
-        1147181833, 1211232592, 1659125656, 262672951,
-        2127530667, 1618397408};
     for(j=0;j<10;j++){
         rseed(seeds[j]);
 #ifndef HASU64
-        printf("gs.x="); outhex(gs.x); printf(" or "); out64(gs.x); printf("\n");
+        printf("gs.x="); outhex(gs.x); printf(" or "); out64(gs.x); printf("\n")
+;
 #else
         printf("gs.x=%lX or %lu\n",gs.x,gs.x);
 #endif
-        volatile mlint csum=0;
         for(i=0;i<10;i++){
             k=rdice(12);
             printf("%d ",k);

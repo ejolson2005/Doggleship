@@ -1,10 +1,14 @@
 #include <stdio.h>
-#include <stdint.h>
-#include <unistd.h>
-#include <string.h>
-#include <stdlib.h>
 
 #include "weyl32.h"
+
+#ifdef KANDR
+extern char *malloc();
+extern int exit();
+#else
+#include <unistd.h>
+#include <stdlib.h>
+#endif
 
 #define N 10
 static mlint gamma1=1900,gamma2=2200,rseq=127;
@@ -28,29 +32,21 @@ static char *tframe,*bframe;
 #ifdef ASCII
 static char *petscii[8]={ "|","+","-","+","|","+","-","+" };
 #else
-static char *petscii[8]={ "┃","┓","━","┏","┃","┗","━","┛" };
+#include "petscii.i"
 #endif
-
-/*  Indexing of petscii is for following positions of box frame.
-
-        3 2 1
-        4   0
-        5 6 7
-
-    Use strings to allow inclusion of utf8 and escape characters.  */
 
 #ifdef HASU64
 static int shipfit(bdspec b,int x,int y,int d,int k);
 static void shipput(bdspec b,int x,int y,int d,int k);
 static void place(bdspec b);
 static void pline(int z[]);
-static char *addstr(char *p,char *q);
+static char *dogadd(char *p,char *q);
 static int tally(int f[4],bdspec b);
 static int numshots(int f[4]);
 static void getopen(int *x,int *y,bdspec b,int o);
 static int fship(bdspec b,int s);
 static char *getname(bdspec b);
-static int attack(bdspec a,bdspec b,int gamma);
+static int attack(bdspec a,bdspec b,mlint gamma);
 static char *fptoa(mlint x,int dp);
 static mlint atofp(char *p,int dp);
 extern int main(int argc,char *argv[]);
@@ -68,7 +64,7 @@ static int shipfit(b,x,y,d,k) bdspec b; int x,y,d,k; {
 
 static void shipput(b,x,y,d,k) bdspec b; int x,y,d,k; {
     int l,lnum=ships[k].length;
-    k=-k-1;
+    k=(-k-1);
     for(l=0;l<lnum;l++){
         b[x][y]=k;
         x+=dirx[d]; y+=diry[d];
@@ -95,7 +91,7 @@ static void pline(z) int z[]; {
         if(z[j]==0) {
             fputs("   ",stdout);
         } else if(z[j]<0) {
-            k=-z[j]-1;
+            k=(-z[j]-1);
             fputs(ships[k].bd,stdout);
         } else if(z[j]<10) {
             printf(" %1d ",z[j]);
@@ -105,43 +101,49 @@ static void pline(z) int z[]; {
     }
 }
 
-static char *addstr(p,q) char *p,*q; {
-    while(*q) *p++=*q++;
+static char *dogadd(p,q) char *p,*q; {
+    while(*q) *p++=(*q++);
     return p;
+}
+
+static int doglen(p) char *p; {
+    char *q=p;
+    while(*q) q++;
+    return q-p;
 }
 
 static void mkframe(){
     int i,k,tf,bf;
     char *p;
     if(tframe) return;
-    tf=2*(strlen(petscii[3])+(3*N+1)*strlen(petscii[2])+strlen(petscii[1]));
+    tf=2*(doglen(petscii[3])+(3*N+1)*doglen(petscii[2])+doglen(petscii[1]));
     tframe=malloc(tf+4);
     p=tframe;
     for(k=0;k<2;k++){
-        p=addstr(p,petscii[3]);
+        p=dogadd(p,petscii[3]);
         for(i=0;i<N;i++){
-            p=addstr(p,petscii[2]);
-            p=addstr(p,petscii[2]);
-            p=addstr(p,petscii[2]);
+            p=dogadd(p,petscii[2]);
+            p=dogadd(p,petscii[2]);
+            p=dogadd(p,petscii[2]);
         }
-        p=addstr(p,petscii[2]);
-        p=addstr(p,petscii[1]);
-        if(k==0) p=addstr(p,"   ");
+        p=dogadd(p,petscii[2]);
+        p=dogadd(p,petscii[1]);
+        if(k==0) p=dogadd(p,"   ");
     }
     *p=0;
-    bf=2*(strlen(petscii[5])+(3*N+1)*strlen(petscii[6])+strlen(petscii[7]));
+    bf=2*(doglen(petscii[5])+(3*N+1)*doglen(petscii[6])+doglen(petscii[7]));
     bframe=malloc(bf+4);
     p=bframe;
     for(k=0;k<2;k++){
-        p=addstr(p,petscii[5]);
+        p=dogadd(p,petscii[5]);
         for(i=0;i<N;i++){
-            p=addstr(p,petscii[6]);
-            p=addstr(p,petscii[6]);
-            p=addstr(p,petscii[6]);
+            p=dogadd(p,petscii[6]);
+            p=dogadd(p,petscii[6]);
+            p=dogadd(p,petscii[6]);
         }
-        p=addstr(p,petscii[6]);
-        p=addstr(p,petscii[7]);
-        if(k==0) p=addstr(p,"   ");
+        p=dogadd(p,petscii[6]);
+        p=dogadd(p,petscii[7]);
+        if(k==0) p=dogadd(p,"   ");
     }
     *p=0;
 }
@@ -150,8 +152,8 @@ static void pboards(){
     int i;
     char buf[64];
     if(quiet) return;
-    printf("Doggleship Spy Version 1\n"
-        "Trial %d Turn %d\n",trial,turn);
+    printf("Doggleship Spy Version 1\n");
+    printf("Trial %d Turn %d\n",trial,turn);
     mkframe();
     puts(tframe);
     for(i=0;i<N;i++){
@@ -236,7 +238,7 @@ static char *getname(b) bdspec b; {
     return "dog";
 }
 
-static int attack(a,b,gamma) bdspec a,b; int gamma; {
+static int attack(a,b,gamma) bdspec a,b; mlint gamma; {
     int f[4],s,snum,x[7],y[7],o[7],onum,oship,ocount;
     int i,j,k,fgood,g;
     char *aname,*bname;
@@ -279,7 +281,7 @@ static int attack(a,b,gamma) bdspec a,b; int gamma; {
         }
         getopen(&i,&j,b,o[s]);
         if(verb) printf("Shot %d: (%d,%d)\n",s+1,i+1,j+1);
-        k=-b[i][j]-1;
+        k=(-b[i][j]-1);
         if(k>=0) { f[k]++; ocount++; }
         x[s]=i; y[s]=j;
     }
@@ -299,7 +301,7 @@ static int attack(a,b,gamma) bdspec a,b; int gamma; {
 static char *fptoa(x,dp) mlint x; int dp; {
     int d;
     static char xb[128],*xs;
-    if(xs-xb<24) xs=&xb[128];
+    if(xs-xb<24) xs=(&xb[128]);
     *--xs=0;
     if(dp>0){
         for(d=0;d<dp;d++){
@@ -325,7 +327,7 @@ static mlint atofp(p,dp) char *p; int dp; {
     while(dp>0){
         r*=10;
         if(*p>='0'&&*p<='9'){
-            r+=*p-'0'; p++;
+            r+=(*p-'0'); p++;
         }
         dp--;
     }
@@ -333,50 +335,62 @@ static mlint atofp(p,dp) char *p; int dp; {
 }
 
 static void help(){
-    fprintf(stderr, 
-        "Usage: spyspy [options]\n\n"
-        "where options are\n"
-        "\t-b  \tRun in batch mode without display.\n"
-        "\t-c x\tSet gamma to x percent for the cat (default %s).\n"
-        "\t-d x\tSet gamma to x percent for the dog (default %s).\n"
-        "\t-v  \tTurn on verbose mode.\n"
-        "\t-q  \tOnly print summary at the end.\n"
-        "\t-r n\tSet random seed to n (default %s).\n"
-        "\t-t n\tRun n number of trials (default %d).\n"
-        "\t-h  \tPrint this message.\n",
-        fptoa(gamma1,2),fptoa(gamma2,2),fptoa(rseq,0),tmax);
+    fprintf(stderr,"Usage: spyspy [options]\n\n");
+    fprintf(stderr,"where options are\n");
+    fprintf(stderr,"\t-b  \tRun in batch mode without display.\n");
+    fprintf(stderr,
+        "\t-c x\tSet gamma to x percent for the cat (default %s).\n",
+        fptoa(gamma1,2));
+    fprintf(stderr,
+        "\t-d x\tSet gamma to x percent for the dog (default %s).\n",
+        fptoa(gamma2,2));
+    fprintf(stderr,"\t-v  \tTurn on verbose mode.\n");
+    fprintf(stderr,"\t-q  \tOnly print summary at the end.\n");
+    fprintf(stderr,
+        "\t-r n\tSet random seed to n (default %s).\n",fptoa(rseq,0));
+    fprintf(stderr,
+        "\t-t n\tRun n number of trials (default %d).\n",tmax);
+    fprintf(stderr,"\t-h  \tPrint this message.\n");
     exit(1);
 }
 
-static void docmdline(argc,argv) int argc; char *argv[]; {
-    int opt;
-    while((opt=getopt(argc,argv,"bc:d:hqr:t:v"))!=-1){
-        switch (opt) {
+static void docmdline(argc,argv) int argc; char **argv; {
+    while(--argc>0&&*argv[1]=='-'){
+        argv++;
+        while(*++*argv) switch(**argv){
 case 'b':
             quiet=1;
-            break;
+            continue;
 case 'c':
-            gamma1=atofp(optarg,2);
-            break;
+            if(*++*argv) gamma1=atofp(*argv,2);
+            else if(--argc>0) gamma1=atofp(*++argv,2);
+            else help();
+            goto nextarg;
 case 'd':
-            gamma2=atofp(optarg,2);
-            break;
+            if(*++*argv) gamma2=atofp(*argv,2);
+            else if(--argc>0) gamma2=atofp(*++argv,2);
+            else help();
+            goto nextarg;
 case 'q':
             quiet=2;
-            break;
+            continue;
 case 'r':
-            rseq=atofp(optarg,0);
-            break;
+            if(*++*argv) rseq=atofp(*argv,0);
+            else if(--argc>0) rseq=atofp(*++argv,0);
+            else help();
+            goto nextarg;
 case 't':
-            tmax=atoi(optarg);
-            break;
+            if(*++*argv) tmax=atofp(*argv,0);
+            else if(--argc>0) tmax=atofp(*++argv,0);
+            else help();
+            goto nextarg;
 case 'v':
             verb=1;
-            break;
+            continue;
 default:
             help();
-            exit(1);
         }
+nextarg:;
     }
 }
 
@@ -401,7 +415,7 @@ int main(argc,argv) int argc; char *argv[]; {
         for(turn=1;;turn++){
             w=attack(cat,dog,gamma1);
             if(w) break;
-            w=-attack(dog,cat,gamma2);
+            w=(-attack(dog,cat,gamma2));
             if(w) break;
             pboards();
         }
@@ -411,10 +425,10 @@ int main(argc,argv) int argc; char *argv[]; {
         if(quiet==1) printf("%7d %7d %7d\n",trial,w>0?1:2,turn);
     }
     pwin=((mlint)winc*10000+(tmax>>1))/tmax;
-    printf("Out of %d trials\n"
-        "\t%s wins %s percent of the time.\n"
-        "\t%s wins %s percent of the time.\n",
-        tmax,getname(cat),fptoa(pwin,2),
+    printf("Out of %d trials\n",tmax);
+    printf("\t%s wins %s percent of the time.\n",
+        getname(cat),fptoa(pwin,2));
+    printf("\t%s wins %s percent of the time.\n",
         getname(dog),fptoa(10000-pwin,2));
     return 0;
 }
