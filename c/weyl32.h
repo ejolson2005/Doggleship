@@ -18,7 +18,7 @@ extern unsigned int rdice(unsigned int d);
 # else
 
 typedef long mlint;
-typedef unsigned int muint;
+typedef unsigned short muint;
 extern char *my32toa();
 extern void rseed();
 extern unsigned int rdice();
