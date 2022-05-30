@@ -19,10 +19,10 @@ static mlint rint32(rstate *p){
 
 # ifdef DEBUG
 static void outhex(hwu64t x){
-	printf("%llX",x);
+    printf("%llX",x);
 }
 static void out64(hwu64t x){
-	printf("%llu",x);
+    printf("%llu",x);
 }
 static mlint rint32d(rstate *p){
     p->x*=p->x; p->w+=p->s;
@@ -326,7 +326,7 @@ int main(){
 #endif
     rseed(12345);
     printf("gs.s="); outhex(gs.s);
-	printf(" or "); out64(gs.s); printf("\n");
+    printf(" or "); out64(gs.s); printf("\n");
     for(i=0;i<4;i++){
         r=rint32d(&gs);
         printf("rint32(&gs)=%s\n",my32toa(r));
@@ -334,7 +334,7 @@ int main(){
     for(j=0;j<10;j++){
         rseed(seeds[j]);
         printf("gs.x="); outhex(gs.x);
-		printf(" or "); out64(gs.x); printf("\n");
+        printf(" or "); out64(gs.x); printf("\n");
         for(i=0;i<10;i++){
             k=rdice(12);
             printf("%d ",k);
