@@ -8,9 +8,7 @@
 
 # ifdef HASU64
 
-#include <stdint.h>
-typedef int32_t mlint;
-typedef uint8_t muint;
+typedef int mlint;
 extern char *my32toa(mlint x);
 extern void rseed(mlint x);
 extern unsigned int rdice(unsigned int d);
@@ -18,7 +16,6 @@ extern unsigned int rdice(unsigned int d);
 # else
 
 typedef long mlint;
-typedef unsigned short muint;
 extern char *my32toa();
 extern void rseed();
 extern unsigned int rdice();

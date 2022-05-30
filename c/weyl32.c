@@ -6,10 +6,9 @@
 
 #ifdef HASU64
 
-#include <stdint.h>
-#include <inttypes.h>
+typedef long long unsigned int hwu64t;
 typedef struct {
-    uint64_t x,w,s;
+    hwu64t x,w,s;
 } rstate;
 static rstate gs;
 static mlint rint32(rstate *p){
@@ -19,14 +18,20 @@ static mlint rint32(rstate *p){
 }
 
 # ifdef DEBUG
+static void outhex(hwu64t x){
+	printf("%llX",x);
+}
+static void out64(hwu64t x){
+	printf("%llu",x);
+}
 static mlint rint32d(rstate *p){
     p->x*=p->x; p->w+=p->s;
-    printf("1: p->x=%"PRIu64"\n",p->x);
-    printf("2: p->w=%"PRIu64"\n",p->w);
+    printf("1: p->x=");out64(p->x);printf("\n");
+    printf("2: p->w=");out64(p->w);printf("\n");
     p->x+=p->w;
-    printf("3: p->x=%"PRIX64"\n",p->x);
+    printf("3: p->x=");outhex(p->x);printf("\n");
     p->x=(p->x>>32)|(p->x<<32);
-    printf("4: p->x=%"PRIX64"\n",p->x);
+    printf("4: p->x=");outhex(p->x);printf("\n");
     return (mlint)p->x&0x7fffffff;
 }
 # endif
@@ -38,6 +43,8 @@ void rseed(mlint x){
 }
 
 #else
+
+typedef unsigned short muint;
 
 #define my64len (8/(int)sizeof(muint))
 #define my64hlf (4/(int)sizeof(muint))
@@ -110,6 +117,11 @@ static int mydigit(a) char a; {
 
 # ifdef DEBUG
 
+static void chexout(h) muint h; {
+    if(h<10) putchar(h+'0');
+    else putchar(h+'A'-10);
+}
+
 static void outbcd(a) mybcd a; {
     int i,f;
     f=0;
@@ -177,11 +189,6 @@ static void out64(a) my64 a; {
     mybcd c;
     my64tobcd(c,a);
     outbcd(c);
-}
-
-static void chexout(h) muint h; {
-    if(h<10) putchar(h+'0');
-    else putchar(h+'A'-10);
 }
 
 static void outhex(a) my64 a; {
@@ -318,24 +325,16 @@ int main(){
     printf("my64sft=%d\n",my64sft);
 #endif
     rseed(12345);
-#ifndef HASU64
-        printf("gs.s="); outhex(gs.s); printf(" or "); out64(gs.s); printf("\n")
-;
-#else
-        printf("gs.s=%"PRIX64" or %"PRIu64"\n",gs.s,gs.s);
-#endif
+    printf("gs.s="); outhex(gs.s);
+	printf(" or "); out64(gs.s); printf("\n");
     for(i=0;i<4;i++){
         r=rint32d(&gs);
         printf("rint32(&gs)=%s\n",my32toa(r));
     }
     for(j=0;j<10;j++){
         rseed(seeds[j]);
-#ifndef HASU64
-        printf("gs.x="); outhex(gs.x); printf(" or "); out64(gs.x); printf("\n")
-;
-#else
-        printf("gs.x=%"PRIX64" or %"PRIu64"\n",gs.x,gs.x);
-#endif
+        printf("gs.x="); outhex(gs.x);
+		printf(" or "); out64(gs.x); printf("\n");
         for(i=0;i<10;i++){
             k=rdice(12);
             printf("%d ",k);

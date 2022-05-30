@@ -1,5 +1,6 @@
 # Linux
 GCC=gcc
+#FLAGS=-O2 -Wall
 FLAGS=-O2 -Wall -DHASU64
 
 # Historical Unix R7 on the PDP-11
