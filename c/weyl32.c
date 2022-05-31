@@ -39,7 +39,7 @@ static mlint rint32d(rstate *p){
 void rseed(mlint x){
     gs.x=x;
     gs.w=0;
-    gs.s=13091206342165455529u;
+    gs.s=13091206342165455529llu;
 }
 
 #else
