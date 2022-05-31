@@ -2,7 +2,6 @@
     Written 2022 by Eric Olson */
 
 #include <stdio.h>
-
 #include "weyl32.h"
 
 #ifdef KANDR
